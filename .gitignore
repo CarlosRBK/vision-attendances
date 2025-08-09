@@ -1,2 +1,9 @@
-/input_images/** */
-/faces/** */
+/# Ignorar carpetas generadas en la raíz del repo, conservar estructura con .gitkeep
+/input_images/*
+!/input_images/.gitkeep
+/faces/*
+!/faces/.gitkeep
+
+# Mac / Python
+.DS_Store
+__pycache__/
