@@ -6,9 +6,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 
-from .modules.device.router import router as device_router
 from .modules.people.router import router as people_router
-from .modules.faces.router import router as faces_router
+# from .modules.faces.router import router as faces_router
 
 APP_VERSION = os.getenv("APP_VERSION", "0.1.0")
 
@@ -26,9 +25,11 @@ def create_app() -> FastAPI:
         openapi_url="/openapi.json",
         openapi_tags=[
             {"name": "health", "description": "Estado del servicio"},
-            {"name": "device", "description": "Configuración del dispositivo de captura (webcam/RTSP)"},
             {"name": "people", "description": "Gestión de personas (alumnos/docentes)"},
-            {"name": "faces", "description": "Gestión de rostros y embeddings (alta/listado)"},
+            {
+                "name": "faces",
+                "description": "Gestión de rostros y embeddings (alta/listado)",
+            },
         ],
     )
 
@@ -62,12 +63,16 @@ def create_app() -> FastAPI:
         client.close()
 
     # Routers de módulos
-    app.include_router(device_router, prefix="/device", tags=["device"])
     app.include_router(people_router, prefix="/people", tags=["people"])
-    app.include_router(faces_router, prefix="/faces", tags=["faces"])
+    # app.include_router(faces_router, prefix="/faces", tags=["faces"])
 
     # Health
-    @app.get("/health", tags=["health"], summary="Health check", description="Devuelve estado, versión y uptime del servicio")
+    @app.get(
+        "/health",
+        tags=["health"],
+        summary="Health check",
+        description="Devuelve estado, versión y uptime del servicio",
+    )
     async def health():
         started_at: datetime = app.state.started_at
         uptime_sec = int((datetime.now(timezone.utc) - started_at).total_seconds())
