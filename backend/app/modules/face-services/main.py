@@ -36,17 +36,17 @@ if os.path.exists(archivo_asistencia):
 faces_encodings = []
 faces_names = []
 for file_name in os.listdir(optimized_faces_path):
-    image = face_recognition.load_image_file(os.path.join(optimized_faces_path, file_name))
-    if image is None:
-        raise ValueError(f"Error al leer la imagen: {file_name}")
-    #image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    file_path = os.path.join(optimized_faces_path, file_name)
+    # Carga robusta y normalización: garantizar RGB uint8 y memoria C-contigua (Windows)
+    img = Image.open(file_path).convert("RGB")
+    image = np.array(img, dtype=np.uint8)
+    image = np.ascontiguousarray(image)
 
     height, width = image.shape[:2]
     print(f"Procesando imagen: {file_name} (dimensiones: {width}x{height})")
-    print(f"Tipo de imagen: {image.dtype}, Forma: {image.shape}")
+    print(f"Tipo de imagen: {image.dtype}, Forma: {image.shape}, Contiguous: {image.flags['C_CONTIGUOUS']}")
     print("Min pixel value:", image.min())
     print("Max pixel value:", image.max())
-    img = Image.open(os.path.join(optimized_faces_path, file_name))
     print("PIL mode:", img.mode)  # Debe ser 'RGB'
 
     encs = face_recognition.face_encodings(
@@ -153,6 +153,8 @@ while True:
                 roi_rgb = cv2.cvtColor(roi, cv2.COLOR_BGR2RGB)
                 # Reducir tamaño del ROI para acelerar el cómputo del embedding
                 roi_rgb_small = cv2.resize(roi_rgb, (150, 150))
+                # Asegurar uint8 y contigüidad en memoria (evita errores en Windows/dlib)
+                roi_rgb_small = np.ascontiguousarray(roi_rgb_small, dtype=np.uint8)
                 encs = face_recognition.face_encodings(
                     roi_rgb_small,
                     known_face_locations=[(0, 150, 150, 0)],
