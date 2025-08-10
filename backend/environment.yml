@@ -1,0 +1,24 @@
+name: vision-attendances-backend
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.9
+  - numpy>=1.23
+  - opencv
+  - pillow>=8.3.0,<10.0.0
+  - cmake
+  - dlib
+  - pip
+  - pip:
+    - fastapi==0.111.0
+    - uvicorn[standard]==0.30.0
+    - motor>=3.7,<4
+    - pymongo>=4.9,<5
+    - pydantic==2.7.1
+    - python-dotenv==1.0.1
+    - dnspython==2.6.1
+    - python-jose==3.3.0
+    - passlib[bcrypt]==1.7.4
+    - python-multipart>=0.0.9
+    - face_recognition==1.3.0

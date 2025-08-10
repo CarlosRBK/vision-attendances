@@ -1,8 +1,11 @@
-/# Ignorar carpetas generadas en la raíz del repo, conservar estructura con .gitkeep
+# Ignorar carpetas generadas en la raíz del repo, conservar estructura con .gitkeep
 /input_images/*
 !/input_images/.gitkeep
 /faces/*
 !/faces/.gitkeep
+
+# Entorno
+.env
 
 # Mac / Python
 .DS_Store

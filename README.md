@@ -9,6 +9,14 @@ Este documento describe una arquitectura modular monolítica (MVP) para registro
 - **Base de datos (MongoDB Atlas)**: colecciones `faces`, con índices mínimos para consultas frecuentes.
 - **Fuente de video**: webcam local inicialmente; extensible a cámara IP (RTSP) vía configuración en `/device`.
 
+
+
+
+
+
+[---------------------   ESTO SE PUEDE MUDAR A SUS PROPIOS README DENTRO DE LAS CARPETAS DE BACK Y FRONT---------------------------]
+
+
 ### Backend — Estructura modular por carpetas
 
 ```
@@ -69,39 +77,39 @@ Errores estandarizados:
 
 ## Face Services — Scripts locales
 
-- Primero crear el entorno:
+1. Crear el entorno:
   ```bash
-conda env create -f environment.yml
+    conda env create -f environment.yml
   ```
 
-- Segundo activar el entorno:
+1. Activar el entorno:
   ```bash
-conda activate face-recognition
+    conda activate face-recognition
   ```
 
-- Para ejecutar el extractor de caras (crear la carpeta `input_images` y meter una selfie en .jpeg o .jpg):
+1. Para ejecutar el extractor de caras (crear la carpeta `input_images` y meter una selfie en .jpeg o .jpg):
   ```bash
-python extracting_faces.py
+    python extracting_faces.py
   ```
 
-  Obs: Esto deberia crear una carpeta llamada `faces` que tendra una imagen 150x150 del rostro de la imagen de `input_images`.
+  Obs: Esto debería crear una carpeta llamada `faces` que tendrá una imagen 150x150 del rostro de la imagen de `input_images`.
 
-- Para ejecutar el script de deteccion y asistencia:
+1. Para ejecutar el script de detección y asistencia:
   ```bash
-python f_recognition.py
+    python f_recognition.py
   ```
 
 ---
 
 ## Backend — Instalación y ejecución (FastAPI)
 
-1) Activar entorno conda
+1. Activar entorno conda
 
 ```bash
 conda activate face-recognition
 ```
 
-2) Configurar variables en `backend/.env`
+1. Configurar variables en `backend/.env`
 
 ```env
 MONGODB_URI=mongodb+srv://<usuario>:<password>@<cluster>/<db>?retryWrites=true&w=majority
@@ -109,7 +117,7 @@ DB_NAME=attendance
 APP_VERSION=0.1.0
 ```
 
-3) Instalar dependencias del backend
+1. Instalar dependencias del backend
 
 ```bash
 python -m pip install -r backend/requirements.txt
@@ -120,7 +128,7 @@ Notas:
 - Si notas errores por usar el intérprete equivocado, ejecuta con la ruta absoluta del entorno:
   `/Users/user/miniconda3/envs/face-recognition/bin/python -m pip install -r backend/requirements.txt`
 
-4) Ejecutar el servidor
+1. Ejecutar el servidor
 
 ```bash
 python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --app-dir backend
@@ -128,7 +136,7 @@ python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --app-dir backend
 # python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 --app-dir backend
 ```
 
-5) Verificar
+1. Verificar
 
 - Health: http://localhost:8000/health
 - Swagger: http://localhost:8000/docs

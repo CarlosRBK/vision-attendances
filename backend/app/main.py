@@ -1,6 +1,5 @@
 from datetime import datetime, timezone
 import os
-from typing import AsyncIterator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,7 +9,6 @@ from .modules.people.router import router as people_router
 # from .modules.faces.router import router as faces_router
 
 APP_VERSION = os.getenv("APP_VERSION", "0.1.0")
-
 
 def create_app() -> FastAPI:
     app = FastAPI(
@@ -43,7 +41,6 @@ def create_app() -> FastAPI:
     )
 
     # Lifespan para DB y uptime
-    @app.on_event("startup")
     async def on_startup() -> None:
         from .core.config import settings
 
@@ -57,10 +54,12 @@ def create_app() -> FastAPI:
         await app.state.db["faces"].create_index("person_id")
         await app.state.db["people"].create_index("full_name")
 
-    @app.on_event("shutdown")
     async def on_shutdown() -> None:
         client: AsyncIOMotorClient = app.state.mongo_client
         client.close()
+
+    app.add_event_handler("startup", on_startup)
+    app.add_event_handler("shutdown", on_shutdown)
 
     # Routers de módulos
     app.include_router(people_router, prefix="/people", tags=["people"])
