@@ -1,9 +1,9 @@
 name: vision-attendances-backend
 channels:
-  - defaults
   - conda-forge
+  - defaults
 dependencies:
-  - python=3.9
+  - python=3.10
   - numpy>=1.23
   - opencv
   - pillow>=8.3.0,<10.0.0
