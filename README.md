@@ -79,7 +79,7 @@ conda env create -f environment.yml
 conda activate face-recognition
   ```
 
-- Para ejecutar el extractor de caras (crear la carpeta `input_images` y meter una selfie en JPEG o JPG):
+- Para ejecutar el extractor de caras (crear la carpeta `input_images` y meter una selfie en .jpeg o .jpg):
   ```bash
 python extracting_faces.py
   ```
