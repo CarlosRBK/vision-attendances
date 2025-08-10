@@ -37,17 +37,18 @@ faces_encodings = []
 faces_names = []
 for file_name in os.listdir(optimized_faces_path):
     file_path = os.path.join(optimized_faces_path, file_name)
-    # Carga robusta y normalización: garantizar RGB uint8 y memoria C-contigua (Windows)
-    img = Image.open(file_path).convert("RGB")
-    image = np.array(img, dtype=np.uint8)
-    image = np.ascontiguousarray(image)
+    image = cv2.imread(file_path)
+    if image is None:
+        print(f"Error al cargar la imagen: {file_name}. Verifica que sea una imagen válida.")
+        continue
+
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # Convertir a RGB
 
     height, width = image.shape[:2]
     print(f"Procesando imagen: {file_name} (dimensiones: {width}x{height})")
     print(f"Tipo de imagen: {image.dtype}, Forma: {image.shape}, Contiguous: {image.flags['C_CONTIGUOUS']}")
     print("Min pixel value:", image.min())
     print("Max pixel value:", image.max())
-    print("PIL mode:", img.mode)  # Debe ser 'RGB'
 
     encs = face_recognition.face_encodings(
         image, known_face_locations=[(0, 150, 150, 0)]

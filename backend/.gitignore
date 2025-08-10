@@ -1,8 +1,5 @@
-# Ignorar carpetas generadas en la raíz del repo, conservar estructura con .gitkeep
-/input_images/*
-!/input_images/.gitkeep
-/faces/*
-!/faces/.gitkeep
+#imágenes
+/**/*.jpg
 
 # Entorno
 .env
