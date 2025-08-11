@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 from pydantic import BaseModel, Field
 
@@ -19,10 +19,18 @@ class PersonBase(BaseModel):
 
 
 class PersonIn(PersonBase):
+    image_base64: str = Field(
+        ..., description="Imagen codificada en base64, sin el prefijo data:image/…"
+    )
     pass
 
 
 class PersonOut(PersonBase):
     id: str = Field(..., description="ID del documento")
+    encodings: List[List[float]] = Field(
+        ..., description="Lista de vectores de características"
+    )
     created_at: datetime = Field(..., description="Fecha de creación")
-    updated_at: Optional[datetime] = Field(None, description="Fecha de última actualización")
+    updated_at: Optional[datetime] = Field(
+        None, description="Fecha de última actualización"
+    )

@@ -21,6 +21,7 @@ def _serialize(doc: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "id": str(doc.get("_id")),
         "name": doc.get("name"),
+        "embedings": doc.get("embedings"),
         "created_at": doc.get("created_at"),
         "updated_at": doc.get("updated_at"),
     }

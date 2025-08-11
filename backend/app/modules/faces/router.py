@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import base64
+import io
 from typing import List
 
 from fastapi import APIRouter, HTTPException, Query, Request
 
 from .schemas import PersonIn, PersonOut
 from . import service
+from ...utils.img_to_np import img_to_np
 
 router = APIRouter()
 
@@ -36,9 +39,6 @@ async def list_people(request: Request, skip: int = Query(0, ge=0), limit: int =
 async def create_person(payload: PersonIn, request: Request):
     db = get_db(request)
     doc = await service.create_person(db, payload.model_dump(exclude_none=True))
-
-    # TODO: 
-
     return doc
 
 
