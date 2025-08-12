@@ -2,11 +2,11 @@ from datetime import datetime, timezone
 import os
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from .modules.people.router import router as people_router
-# from .modules.faces.router import router as faces_router
 
 APP_VERSION = os.getenv("APP_VERSION", "0.1.0")
 
@@ -16,7 +16,7 @@ def create_app() -> FastAPI:
         version=APP_VERSION,
         description=(
             "API del sistema de asistencia por reconocimiento facial.\n\n"
-            "Endpoints principales: health, device, people y faces. Documentación autogenerada con Swagger (/docs) y ReDoc (/redoc)."
+            "Endpoints principales: health,  people. Documentación autogenerada con Swagger (/docs) y ReDoc (/redoc)."
         ),
         docs_url="/docs",
         redoc_url="/redoc",
@@ -24,10 +24,6 @@ def create_app() -> FastAPI:
         openapi_tags=[
             {"name": "health", "description": "Estado del servicio"},
             {"name": "people", "description": "Gestión de personas (alumnos/docentes)"},
-            {
-                "name": "faces",
-                "description": "Gestión de rostros y embeddings (alta/listado)",
-            },
         ],
     )
 
@@ -43,15 +39,18 @@ def create_app() -> FastAPI:
     # Lifespan para DB y uptime
     async def on_startup() -> None:
         from .core.config import settings
+        import os
 
         app.state.started_at = datetime.now(timezone.utc)
         app.state.mongo_client = AsyncIOMotorClient(settings.MONGODB_URI)
         app.state.db = app.state.mongo_client[settings.DB_NAME]
 
+        # Ensure MEDIA_ROOT exists
+        os.makedirs(settings.MEDIA_ROOT, exist_ok=True)
+
         # Crear índices mínimos
         await app.state.db["attendances"].create_index("timestamp")
         await app.state.db["attendances"].create_index("person_id")
-        await app.state.db["faces"].create_index("person_id")
         await app.state.db["people"].create_index("full_name")
 
     async def on_shutdown() -> None:
@@ -63,7 +62,12 @@ def create_app() -> FastAPI:
 
     # Routers de módulos
     app.include_router(people_router, prefix="/people", tags=["people"])
-    # app.include_router(faces_router, prefix="/faces", tags=["faces"])
+
+    # Static files (media)
+    from .core.config import settings as _settings
+    # Ensure directory exists before mounting, StaticFiles checks at init
+    os.makedirs(_settings.MEDIA_ROOT, exist_ok=True)
+    app.mount("/static", StaticFiles(directory=_settings.MEDIA_ROOT), name="static")
 
     # Health
     @app.get(

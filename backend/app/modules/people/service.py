@@ -5,19 +5,89 @@ from typing import Any, Dict, List, Optional
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from . import repository as repo
+from fastapi import UploadFile
+from .storage import save_person_photo, delete_person_photo as storage_delete_photo
 
 
 async def list_people(db: AsyncIOMotorDatabase, skip: int = 0, limit: int = 50) -> List[Dict[str, Any]]:
-    return await repo.list_people(db, skip=skip, limit=limit)
+    items = await repo.list_people(db, skip=skip, limit=limit)
+    return [_present_person(it) for it in items]
 
 
 async def get_person(db: AsyncIOMotorDatabase, person_id: str) -> Optional[Dict[str, Any]]:
-    return await repo.get_person(db, person_id)
+    doc = await repo.get_person(db, person_id)
+    return _present_person(doc) if doc else None
+
+
+async def get_person_raw(db: AsyncIOMotorDatabase, person_id: str) -> Optional[Dict[str, Any]]:
+    # Internal helper used by router to manage photo files on disk
+    return await repo.get_person_raw(db, person_id)
 
 
 async def create_person(db: AsyncIOMotorDatabase, payload: Dict[str, Any]) -> Dict[str, Any]:
-    return await repo.create_person(db, payload)
+    # Photo is saved on disk; payload may include only 'photo_path'.
+    created = await repo.create_person(db, payload)
+    return _present_person(created)
 
 
 async def update_person(db: AsyncIOMotorDatabase, person_id: str, payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    return await repo.update_person(db, person_id, payload)
+    updated = await repo.update_person(db, person_id, payload)
+    return _present_person(updated) if updated else None
+
+
+async def create_person_with_photo(
+    db: AsyncIOMotorDatabase,
+    data: Dict[str, Any],
+    photo: Optional[UploadFile],
+) -> Dict[str, Any]:
+    if photo is not None:
+        # save and set photo_path
+        rel_path = await save_person_photo(photo)
+        data = {**data, "photo_path": rel_path}
+    created = await repo.create_person(db, data)
+    return _present_person(created)
+
+
+async def set_person_photo(
+    db: AsyncIOMotorDatabase,
+    person_id: str,
+    photo: UploadFile,
+) -> Optional[Dict[str, Any]]:
+    # Ensure exists
+    existing = await repo.get_person_raw(db, person_id)
+    if not existing:
+        return None
+
+    # delete previous if any
+    prev_rel = existing.get("photo_path")
+    if prev_rel:
+        storage_delete_photo(prev_rel)
+
+    rel_path = await save_person_photo(photo)
+    updated = await repo.update_person(db, person_id, {"photo_path": rel_path})
+    return _present_person(updated) if updated else None
+
+
+async def delete_person_photo(db: AsyncIOMotorDatabase, person_id: str) -> Optional[Dict[str, Any]]:
+    existing = await repo.get_person_raw(db, person_id)
+    if not existing:
+        return None
+    prev_rel = existing.get("photo_path")
+    if prev_rel:
+        storage_delete_photo(prev_rel)
+    updated = await repo.update_person(db, person_id, {"photo_path": None})
+    return _present_person(updated) if updated else None
+
+
+def _present_person(doc: Dict[str, Any]) -> Dict[str, Any]:
+    """Map repository document to API shape, computing has_photo and photo_url.
+    Removes internal photo_path from outward responses.
+    """
+    if not doc:
+        return doc
+    photo_path = doc.get("photo_path")
+    presented = {**doc}
+    presented.pop("photo_path", None)
+    presented["has_photo"] = bool(photo_path)
+    presented["photo_url"] = f"/static/{photo_path}" if photo_path else None
+    return presented

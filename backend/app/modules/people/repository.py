@@ -25,6 +25,8 @@ def _serialize(doc: Dict[str, Any]) -> Dict[str, Any]:
         "group": doc.get("group"),
         "created_at": doc.get("created_at"),
         "updated_at": doc.get("updated_at"),
+        # raw field for service mapping
+        "photo_path": doc.get("photo_path"),
     }
 
 
@@ -45,6 +47,11 @@ async def get_person(db: AsyncIOMotorDatabase, person_id: str) -> Optional[Dict[
     return _serialize(doc) if doc else None
 
 
+async def get_person_raw(db: AsyncIOMotorDatabase, person_id: str) -> Optional[Dict[str, Any]]:
+    oid = _ensure_object_id(person_id)
+    return await db[COLLECTION].find_one({"_id": oid})
+
+
 async def create_person(db: AsyncIOMotorDatabase, data: Dict[str, Any]) -> Dict[str, Any]:
     now = datetime.now(timezone.utc)
     doc = {
@@ -55,6 +62,9 @@ async def create_person(db: AsyncIOMotorDatabase, data: Dict[str, Any]) -> Dict[
         "created_at": now,
         "updated_at": None,
     }
+    # Optional local path to saved photo
+    if data.get("photo_path"):
+        doc["photo_path"] = data["photo_path"]
     res = await db[COLLECTION].insert_one(doc)
     created = await db[COLLECTION].find_one({"_id": res.inserted_id})
     return _serialize(created)
@@ -62,8 +72,14 @@ async def create_person(db: AsyncIOMotorDatabase, data: Dict[str, Any]) -> Dict[
 
 async def update_person(db: AsyncIOMotorDatabase, person_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     oid = _ensure_object_id(person_id)
-    update_doc: Dict[str, Any] = {k: v for k, v in data.items() if v is not None}
-    update_doc["updated_at"] = datetime.now(timezone.utc)
-    await db[COLLECTION].update_one({"_id": oid}, {"$set": update_doc})
+    set_fields: Dict[str, Any] = {k: v for k, v in data.items() if v is not None}
+    unset_fields: Dict[str, int] = {k: 1 for k, v in data.items() if v is None}
+    set_fields["updated_at"] = datetime.now(timezone.utc)
+
+    update_ops: Dict[str, Any] = {"$set": set_fields}
+    if unset_fields:
+        update_ops["$unset"] = unset_fields
+
+    await db[COLLECTION].update_one({"_id": oid}, update_ops)
     fresh = await db[COLLECTION].find_one({"_id": oid})
     return _serialize(fresh) if fresh else None

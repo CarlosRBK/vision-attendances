@@ -7,6 +7,13 @@ from dotenv import load_dotenv
 class Settings(BaseModel):
     MONGODB_URI: str = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
     DB_NAME: str = os.getenv("DB_NAME", "attendance_db")
+    # Ruta base para archivos estáticos/subidos (por defecto: app/static)
+    MEDIA_ROOT: str = os.getenv(
+        "MEDIA_ROOT",
+        os.path.normpath(
+            os.path.join(os.path.dirname(__file__), "..", "static")
+        ),
+    )
 
     # Defaults de dispositivo
     DEVICE_ID: str = os.getenv("DEVICE_ID", "default")

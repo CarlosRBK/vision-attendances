@@ -32,3 +32,5 @@ class PersonOut(PersonBase):
     id: str = Field(..., description="ID del documento")
     created_at: datetime = Field(..., description="Fecha de creación")
     updated_at: Optional[datetime] = Field(None, description="Fecha de última actualización")
+    has_photo: bool = Field(False, description="Indica si la persona tiene una foto almacenada")
+    photo_url: Optional[str] = Field(None, description="URL relativa para acceder a la foto (/static/...) si existe")

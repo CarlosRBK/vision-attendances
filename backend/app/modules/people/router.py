@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import List
+from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, HTTPException, Query, Request, UploadFile, File, Form
 
 from .schemas import PersonIn, PersonOut
 from . import service
@@ -31,12 +31,32 @@ async def list_people(request: Request, skip: int = Query(0, ge=0), limit: int =
     response_model=PersonOut,
     status_code=201,
     summary="Crear persona",
-    description="Crea una nueva persona.",
+    description=(
+        "Crea una nueva persona. Acepta multipart/form-data con campos y un archivo opcional 'photo' (PNG/JPEG)."
+    ),
 )
-async def create_person(payload: PersonIn, request: Request):
+async def create_person(
+    request: Request,
+    full_name: str = Form(...),
+    email: Optional[str] = Form(None),
+    grade: Optional[str] = Form(None),
+    group: Optional[str] = Form(None),
+    photo: UploadFile = File(None),
+):
     db = get_db(request)
-    doc = await service.create_person(db, payload.model_dump(exclude_none=True))
-    return doc
+    data = {
+        "full_name": full_name,
+        "email": email,
+        "grade": grade,
+        "group": group,
+    }
+    try:
+        doc = await service.create_person_with_photo(db, data, photo)
+        return doc
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"No se pudo guardar la imagen: {e}")
 
 
 @router.get(
@@ -65,3 +85,43 @@ async def update_person(person_id: str, payload: PersonIn, request: Request):
     if not doc:
         raise HTTPException(status_code=404, detail="Persona no encontrada")
     return doc
+
+
+@router.put(
+    "/{person_id}/photo",
+    response_model=PersonOut,
+    summary="Actualizar/establecer foto de la persona",
+    description=(
+        "Sube y reemplaza la foto de una persona. Acepta multipart/form-data con 'photo' (PNG/JPEG). "
+        "Si existía una foto anterior, se elimina del disco."
+    ),
+)
+async def set_person_photo(
+    person_id: str,
+    request: Request,
+    photo: UploadFile = File(...),
+):
+    db = get_db(request)
+    try:
+        updated = await service.set_person_photo(db, person_id, photo)
+        if not updated:
+            raise HTTPException(status_code=404, detail="Persona no encontrada")
+        return updated
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"No se pudo guardar la imagen: {e}")
+
+
+@router.delete(
+    "/{person_id}/photo",
+    response_model=PersonOut,
+    summary="Eliminar foto de la persona",
+    description="Elimina la foto asociada a la persona y limpia el campo en la base de datos.",
+)
+async def delete_person_photo(person_id: str, request: Request):
+    db = get_db(request)
+    updated = await service.delete_person_photo(db, person_id)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Persona no encontrada")
+    return updated
