@@ -36,7 +36,7 @@ yarn install
 
 ## Configuración
 
-Crea un archivo `.env` en la raíz del proyecto frontend con las siguientes variables:
+Crea un archivo (En este caso se sube con .env en el repositorio ya que no hay datos sensibles) `.env` en la raíz del proyecto frontend con las siguientes variables:
 
 ```
 VITE_API_BASE_URL=http://localhost:8000
