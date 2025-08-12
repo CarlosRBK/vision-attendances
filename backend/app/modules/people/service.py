@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
+import os
 
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from . import repository as repo
 from fastapi import UploadFile
 from .storage import save_person_photo, delete_person_photo as storage_delete_photo
+from ...core.config import settings
 
 
 async def list_people(db: AsyncIOMotorDatabase, skip: int = 0, limit: int = 50) -> List[Dict[str, Any]]:
@@ -41,8 +43,7 @@ async def create_person_with_photo(
     photo: Optional[UploadFile],
 ) -> Dict[str, Any]:
     if photo is not None:
-        # save and set photo_path
-        rel_path = await save_person_photo(photo)
+        rel_path = await save_person_photo(photo, data["full_name"])
         data = {**data, "photo_path": rel_path}
     created = await repo.create_person(db, data)
     return _present_person(created)
@@ -63,7 +64,7 @@ async def set_person_photo(
     if prev_rel:
         storage_delete_photo(prev_rel)
 
-    rel_path = await save_person_photo(photo)
+    rel_path = await save_person_photo(photo, existing["full_name"])
     updated = await repo.update_person(db, person_id, {"photo_path": rel_path})
     return _present_person(updated) if updated else None
 
@@ -79,6 +80,19 @@ async def delete_person_photo(db: AsyncIOMotorDatabase, person_id: str) -> Optio
     return _present_person(updated) if updated else None
 
 
+async def delete_person(db: AsyncIOMotorDatabase, person_id: str) -> bool:
+    """Delete person and associated photo file if present.
+    Returns True if the person was deleted, False if not found.
+    """
+    existing = await repo.get_person_raw(db, person_id)
+    if not existing:
+        return False
+    prev_rel = existing.get("photo_path")
+    if prev_rel:
+        storage_delete_photo(prev_rel)
+    return await repo.delete_person(db, person_id)
+
+
 def _present_person(doc: Dict[str, Any]) -> Dict[str, Any]:
     """Map repository document to API shape, computing has_photo and photo_url.
     Removes internal photo_path from outward responses.
@@ -88,6 +102,8 @@ def _present_person(doc: Dict[str, Any]) -> Dict[str, Any]:
     photo_path = doc.get("photo_path")
     presented = {**doc}
     presented.pop("photo_path", None)
-    presented["has_photo"] = bool(photo_path)
-    presented["photo_url"] = f"/static/{photo_path}" if photo_path else None
+    # Validate file existence to avoid broken links when the file was removed manually
+    exists = bool(photo_path) and os.path.exists(os.path.join(settings.MEDIA_ROOT, photo_path))
+    presented["has_photo"] = bool(exists)
+    presented["photo_url"] = f"/static/{photo_path}" if exists else None
     return presented

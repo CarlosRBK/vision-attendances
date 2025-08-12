@@ -12,7 +12,7 @@ API REST y tarea interna de reconocimiento en el mismo proceso. Organización po
 app/
   core/            # config, db (Motor), JWT, logs, errores
   modules/
-    people/        # router, schemas, service, repository
+    people/        # router, schemas, service, repository, storage
   shared/          # utils, tipos comunes
   main.py          # crea app, registra routers, startup/shutdown
 ```
@@ -22,7 +22,7 @@ Notas de diseño:
 - Repositorios: acceso a Mongo (CRUD/queries) sin lógica de negocio.
 - Services: reglas de negocio (debounce, validaciones) y coordinación entre repositorios.
 - Routers: validación/parsing de requests y delegación a services.
- - Storage: utilidades para I/O de archivos en disco (p. ej. `modules/people/storage.py`).
+- Storage: utilidades para I/O de archivos en disco (p. ej. `modules/people/storage.py`).
 
 ## Contratos de API (resumen)
 

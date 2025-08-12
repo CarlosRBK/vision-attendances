@@ -1,11 +1,19 @@
 from functools import lru_cache
 from pydantic import BaseModel
 import os
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
+
+# Cargar .env lo antes posible para que os.getenv vea los valores durante la definición de la clase.
+# 1) Busca .env desde el CWD hacia arriba (proyectos que lo ponen en la raíz)
+load_dotenv(find_dotenv(), override=False)
+# 2) Intenta también backend/.env relativo a este archivo (proyectos que lo ponen en backend/.env)
+_backend_env = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
+load_dotenv(_backend_env, override=False)
 
 
 class Settings(BaseModel):
-    MONGODB_URI: str = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
+    # Soporta MONGODB_URI (preferido) y MONGO_URI (compatibilidad)
+    MONGODB_URI: str = os.getenv("MONGODB_URI") or os.getenv("MONGO_URI") or "mongodb://localhost:27017"
     DB_NAME: str = os.getenv("DB_NAME", "attendance_db")
     # Ruta base para archivos estáticos/subidos (por defecto: app/static)
     MEDIA_ROOT: str = os.getenv(
@@ -26,8 +34,6 @@ class Settings(BaseModel):
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
-    # Carga variables de entorno desde .env si existe
-    load_dotenv()
     return Settings()
 
 

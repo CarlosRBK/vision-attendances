@@ -1,19 +1,23 @@
 from __future__ import annotations
 
 import os
+import re
 from typing import Optional
 from uuid import uuid4
 
+import cv2
 from fastapi import UploadFile
 
 from ...core.config import settings
+from ...utils.face_utils import detect_faces
 
 ALLOWED_CONTENT_TYPES = {"image/png", "image/jpeg", "image/jpg"}
 
 
-def ensure_media_dir() -> None:
-    os.makedirs(settings.MEDIA_ROOT, exist_ok=True)
-    os.makedirs(os.path.join(settings.MEDIA_ROOT, "people_photos"), exist_ok=True)
+def ensure_media_dir():
+    abs_dir = os.path.join(settings.MEDIA_ROOT, "people_photos")
+    os.makedirs(abs_dir, exist_ok=True)
+    return abs_dir
 
 
 def _ext_from_content_type(ct: str) -> str:
@@ -23,28 +27,51 @@ def _ext_from_content_type(ct: str) -> str:
     # default to ".jpg" for jpeg/jpg
     return ".jpg"
 
+def normalize_filename(name: str) -> str:
+    name = name.strip().lower()
+    name = re.sub(r"\s+", "_", name)
+    name = re.sub(r"[^a-z0-9_\-]", "", name)
+    return name
 
-async def save_person_photo(file: UploadFile) -> str:
+
+async def save_person_photo(file: UploadFile, full_name: str) -> str:
     """
-    Save uploaded file under MEDIA_ROOT/people_photos and return relative path (unix-style).
+    Guarda una foto de persona, procesa el rostro y devuelve la ruta relativa optimizada.
     """
     if (file.content_type or "").lower() not in ALLOWED_CONTENT_TYPES:
         raise ValueError("Invalid content type. Use PNG or JPEG.")
 
-    ensure_media_dir()
-    rel_dir = "people_photos"
-    abs_dir = os.path.join(settings.MEDIA_ROOT, rel_dir)
+    abs_dir = ensure_media_dir()
 
-    ext = _ext_from_content_type(file.content_type or "")
-    filename = f"{uuid4().hex}{ext}"
+    # Forzamos a JPG optimizado
+    ext = ".jpg"
+    filename = normalize_filename(full_name) + ext
     abs_path = os.path.join(abs_dir, filename)
 
+    temp_path = abs_path + ".tmp"
     data = await file.read()
-    with open(abs_path, "wb") as f:
+    with open(temp_path, "wb") as f:
         f.write(data)
 
-    return os.path.join(rel_dir, filename).replace("\\", "/")
+    image = cv2.imread(temp_path)
+    if image is None:
+        os.remove(temp_path)
+        raise ValueError("Error al leer la imagen.")
 
+    faces = detect_faces(image)
+    if len(faces) == 0:
+        os.remove(temp_path)
+        raise ValueError("No se detectó ningún rostro en la imagen.")
+
+    # Usamos la primera cara
+    (x, y, w, h) = faces[0]
+    face = image[y:y+h, x:x+w]
+    face = cv2.resize(face, (150, 150))
+
+    cv2.imwrite(abs_path, face)
+    os.remove(temp_path)
+
+    return os.path.join("people_photos", filename).replace("\\", "/")
 
 def delete_person_photo(rel_path: Optional[str]) -> None:
     if not rel_path:

@@ -26,15 +26,15 @@ export function ToastProvider({
       gap={gap}
       visibleToasts={visibleToasts}
       closeButton={closeButton}
-      theme="system"
+      theme="light"
       className="toast-premium"
       toastOptions={{
         classNames: {
           toast: "group toast-premium-item rounded-lg border border-border bg-background p-4 shadow-lg",
           title: "text-sm font-semibold text-foreground",
-          description: "text-sm text-muted-foreground",
+          description: "text-sm text-red-500",
           actionButton: "bg-primary text-primary-foreground hover:bg-primary/90",
-          cancelButton: "bg-muted hover:bg-muted/80",
+          cancelButton: "bg-red-500 hover:bg-red-500/80",
           error: "!bg-destructive/15 border-destructive/30 text-destructive",
           success: "!bg-success/15 border-success/30 text-success-foreground",
           warning: "!bg-warning/15 border-warning/30 text-warning-foreground",

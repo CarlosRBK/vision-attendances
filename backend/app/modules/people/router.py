@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, Query, Request, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, Query, Request, UploadFile, File, Form, Response
 
 from .schemas import PersonIn, PersonOut
 from . import service
@@ -125,3 +125,32 @@ async def delete_person_photo(person_id: str, request: Request):
     if not updated:
         raise HTTPException(status_code=404, detail="Persona no encontrada")
     return updated
+
+
+@router.delete(
+    "/{person_id}",
+    status_code=204,
+    summary="Eliminar persona y su foto",
+    description="Elimina la persona y su foto asociada del sistema.",
+)
+async def delete_person(person_id: str, request: Request):
+    db = get_db(request)
+    ok = await service.delete_person(db, person_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Persona no encontrada")
+    # 204 No Content
+    return None
+
+
+@router.delete(
+    "/{person_id}",
+    status_code=204,
+    summary="Eliminar persona",
+    description="Elimina la persona y su foto en disco si existiese.",
+)
+async def delete_person(person_id: str, request: Request):
+    db = get_db(request)
+    deleted = await service.delete_person(db, person_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Persona no encontrada")
+    return Response(status_code=204)

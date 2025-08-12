@@ -3,7 +3,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.8
+  - python=3.9
   - numpy>=1.23
   - pillow>=8.3.0,<10.0.0
   - cmake

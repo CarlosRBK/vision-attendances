@@ -88,6 +88,9 @@ export default function PeopleGrid({ onEditPerson, onAddPerson }: PeopleGridProp
 
   const imgSrc = (p: Person) => p.photo_url ? `http://localhost:8000${p.photo_url}` : ''
 
+  // Track photos that failed to load to avoid setting broken src again on re-renders
+  const [failedPhotoIds, setFailedPhotoIds] = useState<Record<string, boolean>>({})
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -102,7 +105,10 @@ export default function PeopleGrid({ onEditPerson, onAddPerson }: PeopleGridProp
               variant="outline" 
               size="sm"
               leftIcon={<RefreshIcon />}
-              onClick={() => refetch()} 
+              onClick={() => {
+                setFailedPhotoIds({})
+                refetch()
+              }} 
               isLoading={isLoading}
               aria-label="Actualizar lista de alumnos"
             >
@@ -129,7 +135,7 @@ export default function PeopleGrid({ onEditPerson, onAddPerson }: PeopleGridProp
           <div className="flex items-center bg-[--muted]/30 rounded-lg p-1">
             <Tooltip content="Vista de cuadrícula">
               <button
-                className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-white shadow-sm' : ''}`}
+                className={`p-1.5 rounded cursor-pointer ${viewMode === 'grid' ? 'bg-white shadow-sm' : ''}`}
                 onClick={() => setViewMode('grid')}
                 aria-label="Vista de cuadrícula"
               >
@@ -138,7 +144,7 @@ export default function PeopleGrid({ onEditPerson, onAddPerson }: PeopleGridProp
             </Tooltip>
             <Tooltip content="Vista de lista">
               <button
-                className={`p-1.5 rounded ${viewMode === 'list' ? 'bg-white shadow-sm' : ''}`}
+                className={`p-1.5 rounded cursor-pointer ${viewMode === 'list' ? 'bg-white shadow-sm' : ''}`}
                 onClick={() => setViewMode('list')}
                 aria-label="Vista de lista"
               >
@@ -207,14 +213,16 @@ export default function PeopleGrid({ onEditPerson, onAddPerson }: PeopleGridProp
                 <Card interactive variant="elevated" className="h-full">
                   <CardHeader className="flex flex-col items-center text-center pb-0">
                     <div className="relative w-32 h-32 mx-auto overflow-hidden rounded-lg">
-                      {person.photo_url ? (
+                      {person.photo_url && !failedPhotoIds[person.id] ? (
                         <img
                           src={imgSrc(person)}
                           alt={`Foto de ${person.full_name}`}
                           className="w-full h-full object-cover"
                           onError={(e) => {
-                            e.currentTarget.onerror = null;
-                            e.currentTarget.src = '/placeholder-user.png';
+                            // Marcar este id para no intentar recargar la imagen rota en próximos renders
+                            setFailedPhotoIds(prev => ({ ...prev, [person.id]: true }))
+                            // Cambio inmediato de src para evitar parpadeo mientras re-renderiza
+                            e.currentTarget.src = '/placeholder-user.png'
                           }}
                         />
                       ) : (
@@ -317,7 +325,7 @@ export default function PeopleGrid({ onEditPerson, onAddPerson }: PeopleGridProp
                       <td className="py-3 px-4">
                         <div className="flex justify-center">
                           <Avatar 
-                            src={imgSrc(person)} 
+                            src={person.photo_url && !failedPhotoIds[person.id] ? imgSrc(person) : undefined}
                             alt={person.full_name} 
                             fallback={person.full_name.charAt(0)}
                             size="md"

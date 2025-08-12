@@ -83,3 +83,10 @@ async def update_person(db: AsyncIOMotorDatabase, person_id: str, data: Dict[str
     await db[COLLECTION].update_one({"_id": oid}, update_ops)
     fresh = await db[COLLECTION].find_one({"_id": oid})
     return _serialize(fresh) if fresh else None
+
+
+async def delete_person(db: AsyncIOMotorDatabase, person_id: str) -> bool:
+    """Delete a person document by id. Returns True if a document was deleted."""
+    oid = _ensure_object_id(person_id)
+    res = await db[COLLECTION].delete_one({"_id": oid})
+    return res.deleted_count > 0
