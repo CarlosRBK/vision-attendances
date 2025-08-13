@@ -1,5 +1,5 @@
 import { Button } from '@/shared/ui/Button'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -12,21 +12,34 @@ export type WebcamCaptureProps = {
 type CameraErrorType = 'permission' | 'notFound' | 'notReadable' | 'other' | null
 
 export default function WebcamCapture({ value, onChange, aspectRatio = 1 }: WebcamCaptureProps) {
+  // Referencias
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
-  const [stream, setStream] = useState<MediaStream | null>(null)
+  
+  // Estados
   const [captured, setCaptured] = useState<string | null>(value ?? null)
   const [active, setActive] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [cameraError, setCameraError] = useState<CameraErrorType>(null)
   const [countdown, setCountdown] = useState<number | null>(null)
+  const [stream, setStream] = useState<MediaStream | null>(null)
 
+  // Limpiar recursos al desmontar
   useEffect(() => {
     return () => {
-      stop()
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop())
+      }
     }
-  }, [])
+  }, [stream])
+
+  // Efecto para asignar el stream al elemento de video cuando cambie
+  useEffect(() => {
+    if (stream && videoRef.current) {
+      videoRef.current.srcObject = stream
+    }
+  }, [stream])
 
   // Efecto para el contador de captura automática
   useEffect(() => {
@@ -44,40 +57,46 @@ export default function WebcamCapture({ value, onChange, aspectRatio = 1 }: Webc
     return () => clearTimeout(timer)
   }, [countdown])
 
-  const start = async () => {
+  // Inicializar la cámara
+  const initializeCamera = useCallback(async () => {
     try {
       setIsLoading(true)
       setCameraError(null)
 
-      const media = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'user',
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
+      // Verificar soporte del navegador
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setCameraError('other')
+        toast.error('Navegador no compatible', {
+          description: 'Tu navegador no soporta acceso a la cámara.'
+        })
+        return
+      }
+
+      // Solicitar acceso a la cámara con restricciones básicas
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: false
       })
 
-      setStream(media)
-      if (videoRef.current) {
-        videoRef.current.srcObject = media
-        await videoRef.current.play()
-      }
+      // Guardar el stream
+      setStream(mediaStream)
       setActive(true)
-    } catch (e: any) {
-      console.error('Error al iniciar la cámara:', e)
 
-      // Determinar el tipo de error
-      if (e.name === 'NotAllowedError') {
+    } catch (error: any) {
+      console.error('Error al inicializar la cámara:', error)
+
+      // Manejar errores específicos
+      if (error.name === 'NotAllowedError') {
         setCameraError('permission')
         toast.error('Permiso denegado', {
           description: 'No se pudo acceder a la cámara porque se denegó el permiso.'
         })
-      } else if (e.name === 'NotFoundError') {
+      } else if (error.name === 'NotFoundError') {
         setCameraError('notFound')
         toast.error('Cámara no encontrada', {
           description: 'No se detectó ninguna cámara en tu dispositivo.'
         })
-      } else if (e.name === 'NotReadableError') {
+      } else if (error.name === 'NotReadableError') {
         setCameraError('notReadable')
         toast.error('Cámara no disponible', {
           description: 'La cámara está siendo usada por otra aplicación.'
@@ -91,15 +110,24 @@ export default function WebcamCapture({ value, onChange, aspectRatio = 1 }: Webc
     } finally {
       setIsLoading(false)
     }
+  }, [])
+
+  // Función para iniciar la cámara
+  const start = () => {
+    initializeCamera()
   }
 
+  // Función para detener la cámara
   const stop = () => {
-    stream?.getTracks().forEach((t) => t.stop())
-    setStream(null)
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop())
+      setStream(null)
+    }
     setActive(false)
     setCountdown(null)
   }
 
+  // Iniciar cuenta regresiva
   const startCountdown = () => {
     setCountdown(3)
   }
@@ -195,7 +223,14 @@ export default function WebcamCapture({ value, onChange, aspectRatio = 1 }: Webc
             <div className="aspect-square w-full bg-black/10 grid place-items-center">
               {active ? (
                 <div className="relative w-full h-full">
-                  <video ref={videoRef} className="h-full w-full object-cover" playsInline muted />
+                  <video 
+                    ref={videoRef} 
+                    className="h-full w-full object-cover" 
+                    playsInline 
+                    muted 
+                    autoPlay 
+                    style={{ transform: 'scaleX(-1)' }} // Mirror effect for selfie view
+                  />
 
                   {/* Overlay para el contador */}
                   <AnimatePresence>
