@@ -1,7 +1,6 @@
 import cv2
 import os
-
-from resolve_harcascade import resolve_haarcascade
+from main import FaceDetector
 
 current_file_path = os.path.abspath(__file__)
 current_dir_path = os.path.dirname(current_file_path)
@@ -14,7 +13,7 @@ if not os.path.exists(output_file_path):
     os.makedirs(output_file_path)
 
 # Detector facial
-face_detector = cv2.CascadeClassifier(resolve_haarcascade())
+face_detector = cv2.CascadeClassifier(FaceDetector.resolve_haarcascade())
 
 for image_name in os.listdir(input_file_path):
     image = cv2.imread(os.path.join(input_file_path, image_name))
