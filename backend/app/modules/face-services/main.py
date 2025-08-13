@@ -1,3 +1,4 @@
+import platform
 from typing import Union
 import cv2
 import os
@@ -17,9 +18,31 @@ class VideoCapture:
 
     frame_count = 0
 
+    def _get_video_capture(self, target_source: int = 0) -> cv2.VideoCapture:
+        system = platform.system()
+        candidates = []
+        if system == "Windows":
+            candidates = [(target_source, cv2.CAP_DSHOW), (0, None)]
+        elif system == "Darwin":  # macOS
+            candidates = [(target_source, cv2.CAP_AVFOUNDATION), (0, None)]
+        else:
+            candidates = [(target_source, None)]
+        for source, backend in candidates:
+            cap = cv2.VideoCapture(source) if backend is None else cv2.VideoCapture(source, backend)
+            if cap.isOpened():
+                return cap
+            cap.release()
+        # Fallback: probar más índices sin backend explícito
+        for source in range(target_source, 4):
+            cap = cv2.VideoCapture(source)
+            if cap.isOpened():
+                return cap
+            cap.release()
+        raise RuntimeError("No se pudo abrir la cámara. Verifica permisos del sistema y que no esté en uso por otra aplicación.")
+
     def __init__(self, config: VideoConfig):
         cv2.setUseOptimized(config.use_optimized)
-        self._cap = cv2.VideoCapture(config.video_source)
+        self._cap = self._get_video_capture()
         self._is_capturing = False
 
     def set(self, propId: int, value: float) -> bool:
