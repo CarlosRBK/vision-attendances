@@ -13,6 +13,7 @@ app/
   core/            # config, db (Motor), JWT, logs, errores
   modules/
     people/        # router, schemas, service, repository, storage
+    attendances/   # router, schemas, service, repository, video_capture and face_detection
   shared/          # utils, tipos comunes
   main.py          # crea app, registra routers, startup/shutdown
 ```
@@ -35,6 +36,13 @@ Notas de diseño:
   - PUT `/people/{id}/photo` (subir/reemplazar foto; multipart/form-data con `photo`)
   - DELETE `/people/{id}/photo` (eliminar foto)
 
+- **Attendances**
+
+  - GET `/attendances` (filtros y paginación)
+  - POST `/attendances/start` (comienza detección facial para agregar asistencias)
+  - POST `/attendances/stop` (finaliza el proceso de registro de asistencia)
+  - DELETE `/attendances/{id}` (eliminar asistencia)
+
 - **Health**
   - GET `/health` → estado básico (status, version, uptime).
 
@@ -54,6 +62,7 @@ Errores estandarizados:
 
 1. Crear el entorno:
   ```bash
+  # usa environment_mac.yml o environment_windows.yml dependiendo de tu sistema
   conda env create -f environment.yml
   ```
 
@@ -76,6 +85,12 @@ conda activate vision-attendances-backend
 python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --app-dir backend
 # con autoreload en desarrollo:
 # python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 --app-dir backend
+
+# En caso de obtener el sisguiente error:
+# Please install `face_recognition_models` with this command before using # `face_recognition`:
+
+# pip install git+https://github.com/ageitgey/face_recognition_models
+pip install --upgrade setuptools
 ```
 
 #### Verifica:
