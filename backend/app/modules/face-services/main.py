@@ -4,7 +4,11 @@ import cv2
 import os
 import face_recognition
 import numpy as np
+import time
+import threading
 from datetime import datetime
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler, FileCreatedEvent, FileDeletedEvent, FileModifiedEvent
 
 
 class VideoConfig:
@@ -87,6 +91,76 @@ class Asistencia:
                 f.write(f"{fecha_hora} - {nombre}\n")
             self.registrados.add(nombre)
 
+class FolderMonitor(FileSystemEventHandler):
+    """Monitor de cambios en la carpeta de rostros"""
+    def __init__(self, face_detector):
+        self.face_detector = face_detector
+        self.last_reload = time.time()
+        self.reload_cooldown = 2.0  # segundos mínimos entre recargas
+        self.pending_reload = False
+        self.lock = threading.Lock()
+    
+    def on_created(self, event):
+        # Cuando se crea un archivo nuevo
+        if not event.is_directory and self._is_image_file(event.src_path):
+            print(f"[INFO] Archivo nuevo detectado: {os.path.basename(event.src_path)}")
+            self._schedule_reload()
+    
+    def on_deleted(self, event):
+        # Cuando se elimina un archivo
+        if not event.is_directory and self._is_image_file(event.src_path):
+            print(f"[INFO] Archivo eliminado: {os.path.basename(event.src_path)}")
+            self._schedule_reload()
+    
+    def on_modified(self, event):
+        # Cuando se modifica un archivo
+        if not event.is_directory and self._is_image_file(event.src_path):
+            print(f"[INFO] Archivo modificado: {os.path.basename(event.src_path)}")
+            self._schedule_reload()
+    
+    def _is_image_file(self, path):
+        # Verificar si es un archivo de imagen por su extensión
+        ext = os.path.splitext(path)[1].lower()
+        return ext in [".jpg", ".jpeg", ".png"]
+    
+    def _schedule_reload(self):
+        # Programar una recarga con protección contra recargas frecuentes
+        with self.lock:
+            current_time = time.time()
+            time_since_last = current_time - self.last_reload
+            
+            if time_since_last > self.reload_cooldown:
+                # Si ha pasado suficiente tiempo, recargar inmediatamente
+                self._do_reload()
+                self.last_reload = current_time
+                self.pending_reload = False
+            else:
+                # Si es demasiado pronto, marcar como pendiente
+                self.pending_reload = True
+    
+    def check_pending_reload(self):
+        # Verificar si hay una recarga pendiente y ejecutarla si es necesario
+        with self.lock:
+            current_time = time.time()
+            if self.pending_reload and (current_time - self.last_reload) > self.reload_cooldown:
+                self._do_reload()
+                self.last_reload = current_time
+                self.pending_reload = False
+    
+    def _do_reload(self):
+        # Realizar la recarga de rostros
+        print("\n[INFO] Detectado cambio en la carpeta de rostros. Recargando...")
+        try:
+            # Limpiar las listas existentes para asegurar que se eliminen rostros que ya no existen
+            self.face_detector.faces_encodings = []
+            self.face_detector.faces_names = []
+            # Recargar todos los rostros desde la carpeta
+            self.face_detector.load_faces_from_folder(self.face_detector._faces_folder)
+            print(f"[INFO] Recarga completada. {len(self.face_detector.faces_names)} rostros cargados.")
+        except Exception as e:
+            print(f"[ERROR] Error al recargar rostros: {e}")
+
+
 class FaceDetector:
     _cap: VideoCapture
     _asistencia: Asistencia
@@ -159,7 +233,11 @@ class FaceDetector:
         self._face_detector = cv2.CascadeClassifier(FaceDetector.resolve_haarcascade())
         self._faces_folder = faces_folder
 
+        # Cargar rostros inicialmente
         self.load_faces_from_folder(faces_folder)
+        
+        # Configurar el monitor de la carpeta
+        self._setup_folder_monitor()
     
     def _get_encodings(self, image: np.ndarray) -> Union[np.ndarray, None]:
         """Obtiene los embeddings de un rostro en una imagen."""
@@ -179,26 +257,49 @@ class FaceDetector:
 
     def load_faces_from_folder(self, folder_path: str):
         """Carga los rostros desde una carpeta y los codifica."""
-        for file_name in os.listdir(folder_path):
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path, exist_ok=True)
+            print(f"Carpeta '{folder_path}' creada.")
+        
+        # Obtener lista de archivos en la carpeta
+        files = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f))]
+        image_files = [f for f in files if os.path.splitext(f)[1].lower() in [".jpg", ".jpeg", ".png"]]
+        
+        print(f"Encontrados {len(image_files)} archivos de imagen en '{folder_path}'")
+        
+        face_count = 0
+        for file_name in image_files:
             file_path = os.path.join(folder_path, file_name)
-            image = cv2.imread(file_path)
-            if image is None:
-                print(f"Error al cargar la imagen: {file_name}. Verifica que sea una imagen válida.")
-                continue
-
-            encoding = self._get_encodings(image)
-            if encoding is not None:
-                self.faces_encodings.append(encoding)
-                self.faces_names.append(file_name.split(".")[0])
-            else:
-                print(f"No se detectó un rostro válido en la imagen: {file_name}")
-
-        if not self.faces_encodings:
-            raise RuntimeError(
+            try:
+                # Extraer nombre de la persona del nombre del archivo
+                name = os.path.splitext(file_name)[0]
+                
+                # Cargar imagen y obtener encoding
+                image = cv2.imread(file_path)
+                if image is None:
+                    print(f"No se pudo cargar la imagen: {file_path}")
+                    continue
+                    
+                # Convertir a RGB (face_recognition usa RGB)
+                rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                
+                # Obtener encoding
+                encoding = self._get_encodings(rgb_image)
+                if encoding is not None:
+                    self.faces_encodings.append(encoding)
+                    self.faces_names.append(name)
+                    face_count += 1
+            except Exception as e:
+                print(f"Error al procesar {file_path}: {e}")
+        
+        print(f"Se cargaron {face_count} rostros desde '{folder_path}'")
+        
+        if face_count == 0:
+            print(
                 f"No se encontraron rostros en la carpeta '{folder_path}'. Ejecuta primero extracting_faces.py y verifica que existan imágenes."
             )
 
-    def _draw_label(self, frame: cv2.typing.MatLike, x: int, y: int, w: int, h: int, label: str, color):
+    def _draw_label(self, frame, x: int, y: int, w: int, h: int, label: str, color):
         """Dibujo de etiqueta adaptativa para evitar desborde del texto"""
         font_face = cv2.FONT_HERSHEY_SIMPLEX
         max_w = max(30, w - 8)  # ancho máximo permitido (ligero margen)
@@ -242,7 +343,11 @@ class FaceDetector:
             cv2.LINE_AA,
         )
 
-    def _on_frame(self, frame: cv2.typing.MatLike):
+    def _on_frame(self, frame):
+        # Verificar si hay cambios pendientes en la carpeta de rostros
+        if self._folder_observer:
+            self._folder_observer[1].check_pending_reload()
+            
         frame = cv2.flip(frame, 1)
         process_this_frame = cap.frame_count % self.process_every_n == 0
         if process_this_frame:
@@ -291,11 +396,35 @@ class FaceDetector:
         if cv2.waitKey(1) & 0xFF == ord('q'):
             cap.stop()
 
+    def _setup_folder_monitor(self):
+        """Configura el monitor para la carpeta de rostros"""
+        try:
+            # Crear el monitor y el observador
+            event_handler = FolderMonitor(self)
+            observer = Observer()
+            observer.schedule(event_handler, self._faces_folder, recursive=False)
+            observer.daemon = True  # Terminar cuando el programa principal termine
+            observer.start()
+            self._folder_observer = (observer, event_handler)
+            print(f"[INFO] Monitor de carpeta iniciado: {self._faces_folder}")
+        except Exception as e:
+            print(f"[ERROR] No se pudo iniciar el monitor de carpeta: {e}")
+    
     def star_detection(self):
-        cap.start(self._on_frame)
+        self._cap.start(self._on_frame)
     
     def stop_detection(self):
-        cap.stop()
+        # Detener el observador de archivos si existe
+        if self._folder_observer:
+            try:
+                self._folder_observer[0].stop()
+                self._folder_observer[0].join()
+                print("[INFO] Monitor de carpeta detenido")
+            except Exception as e:
+                print(f"[ERROR] Error al detener el monitor: {e}")
+        
+        # Detener la captura de video
+        self._cap.stop()
 
 
 cap = VideoCapture(VideoConfig())
@@ -306,9 +435,13 @@ cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
 asistencia = Asistencia()
 
+# Obtener la ruta base de la aplicación (backend/app)
 current_file_path = os.path.abspath(__file__)
 current_dir_path = os.path.dirname(current_file_path)
-optimized_faces_path = os.path.join(current_dir_path, "optimized_faces")
+app_dir_path = os.path.dirname(os.path.dirname(current_dir_path))  # Subir dos niveles desde face-services
+
+# Usar la nueva ubicación de las fotos
+optimized_faces_path = os.path.join(app_dir_path, "static", "people_photos")
 
 face_detector = FaceDetector(cap, asistencia, optimized_faces_path)
 
