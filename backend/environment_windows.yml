@@ -1,0 +1,20 @@
+name: vision-attendances-backend
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python==3.13.5
+  - pip
+  - dlib==20.0.*  # Dlib for face detection and recognition
+  - cmake # CMake for building C/C++ extensions, required by dlib
+
+  - numpy=2.2.* # NumPy for numerical operations
+  - pip:
+    - fastapi[standard]==0.116.* # FastAPI framework
+    - uvicorn[standard]==0.35.* # ASGI server for FastAPI
+
+    - opencv-python==4.12.* # OpenCV for image processing
+    - face_recognition==1.3.* # Face recognition library
+
+    - pymongo==4.14.* # MongoDB driver
+    - motor==3.7.* # MongoDB async driver
