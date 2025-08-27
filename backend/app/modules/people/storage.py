@@ -13,7 +13,7 @@ from ...utils.face_utils import detect_faces
 ALLOWED_CONTENT_TYPES = {"image/png", "image/jpeg", "image/jpg"}
 
 
-def ensure_media_dir():
+def get_media_dir():
     abs_dir = os.path.join(settings.MEDIA_ROOT, "people_photos")
     os.makedirs(abs_dir, exist_ok=True)
     return abs_dir
@@ -40,7 +40,7 @@ async def save_person_photo(file: UploadFile, full_name: str) -> str:
     if (file.content_type or "").lower() not in ALLOWED_CONTENT_TYPES:
         raise ValueError("Invalid content type. Use PNG or JPEG.")
 
-    abs_dir = ensure_media_dir()
+    abs_dir = get_media_dir()
 
     # Forzamos a JPG optimizado
     ext = ".jpg"

@@ -3,9 +3,12 @@ from typing import Union
 import cv2
 import face_recognition
 import numpy as np
+
 from .video_capture import VideoCapture, VideoConfig
 from ...utils.face_utils import resolve_haarcascade
 from .loop_manager import LoopManager
+from ..people.storage import get_media_dir as get_people_media_dir
+
 
 class FaceDetector:
     _cap: VideoCapture
@@ -54,6 +57,7 @@ class FaceDetector:
 
     def load_faces_from_folder(self, folder_path: str):
         """Carga los rostros desde una carpeta y  carga los encodings."""
+        loaded_count = 0
         for file_name in os.listdir(folder_path):
             file_path = os.path.join(folder_path, file_name)
             image = cv2.imread(file_path)
@@ -67,8 +71,10 @@ class FaceDetector:
             if encoding is not None:
                 self.faces_encodings.append(encoding)
                 self.faces_names.append(file_name.split(".")[0])
+                loaded_count += 1
             else:
                 print(f"No se detectó un rostro válido en la imagen: {file_name}")
+        print(f"Se cargaron {loaded_count} rostros desde '{folder_path}'")
 
     def _draw_label(
         self,
@@ -208,9 +214,4 @@ cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 cap.set(cv2.CAP_PROP_FPS, 30)
 cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
-
-current_file_path = os.path.abspath(__file__)
-current_dir_path = os.path.dirname(current_file_path)
-optimized_faces_path = os.path.join(current_dir_path, "optimized_faces")
-
-face_detector = FaceDetector(cap, optimized_faces_path)
+face_detector = FaceDetector(cap, get_people_media_dir())
