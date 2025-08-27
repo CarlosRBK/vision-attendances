@@ -1,8 +1,9 @@
 #imágenes
 /**/*.jpg
 
-# Entorno
+# utilidades
 .env
+/**/*.example.py
 
 # Mac / Python
 .DS_Store

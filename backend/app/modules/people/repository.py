@@ -67,6 +67,8 @@ async def create_person(db: AsyncIOMotorDatabase, data: Dict[str, Any]) -> Dict[
         doc["photo_path"] = data["photo_path"]
     res = await db[COLLECTION].insert_one(doc)
     created = await db[COLLECTION].find_one({"_id": res.inserted_id})
+    if not created:
+        raise RuntimeError("Failed to retrieve created document")
     return _serialize(created)
 
 

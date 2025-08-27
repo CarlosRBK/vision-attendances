@@ -127,7 +127,7 @@ async def delete_person_photo(person_id: str, request: Request):
     return updated
 
 
-@router.delete(
+""" @router.delete(
     "/{person_id}",
     status_code=204,
     summary="Eliminar persona y su foto",
@@ -139,7 +139,7 @@ async def delete_person(person_id: str, request: Request):
     if not ok:
         raise HTTPException(status_code=404, detail="Persona no encontrada")
     # 204 No Content
-    return None
+    return None """
 
 
 @router.delete(

@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from .modules.people.router import router as people_router
+from .modules.attendances.router import router as attendances_router
 
 APP_VERSION = os.getenv("APP_VERSION", "0.1.0")
 
@@ -24,6 +25,7 @@ def create_app() -> FastAPI:
         openapi_tags=[
             {"name": "health", "description": "Estado del servicio"},
             {"name": "people", "description": "Gestión de personas (alumnos/docentes)"},
+            {"name": "attendances", "description": "Gestión de asistencias"},
         ],
     )
 
@@ -62,6 +64,7 @@ def create_app() -> FastAPI:
 
     # Routers de módulos
     app.include_router(people_router, prefix="/people", tags=["people"])
+    app.include_router(attendances_router, prefix="/attendances", tags=["attendances"])
 
     # Static files (media)
     from .core.config import settings as _settings

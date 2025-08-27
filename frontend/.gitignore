@@ -7,7 +7,10 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependency
 node_modules
+package-lock.json
+pnpm-lock.yaml
 dist
 dist-ssr
 *.local

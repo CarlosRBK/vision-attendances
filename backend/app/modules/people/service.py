@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 import os
 
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from bson.objectid import ObjectId
 
 from . import repository as repo
 from fastapi import UploadFile
@@ -42,8 +43,10 @@ async def create_person_with_photo(
     data: Dict[str, Any],
     photo: Optional[UploadFile],
 ) -> Dict[str, Any]:
+    person_id = str(ObjectId())
+    data = {**data, "_id": person_id, "photo_path": None}  # Ensure id is set
     if photo is not None:
-        rel_path = await save_person_photo(photo, data["full_name"])
+        rel_path = await save_person_photo(photo, person_id)
         data = {**data, "photo_path": rel_path}
     created = await repo.create_person(db, data)
     return _present_person(created)
@@ -64,7 +67,7 @@ async def set_person_photo(
     if prev_rel:
         storage_delete_photo(prev_rel)
 
-    rel_path = await save_person_photo(photo, existing["full_name"])
+    rel_path = await save_person_photo(photo, person_id)
     updated = await repo.update_person(db, person_id, {"photo_path": rel_path})
     return _present_person(updated) if updated else None
 
