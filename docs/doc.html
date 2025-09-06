@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentación Vision-Attendance Backend</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #1e40af;
+            --accent-color: #f59e0b;
+            --text-color: #1f2937;
+            --bg-color: #ffffff;
+            --border-color: #e5e7eb;
+            --code-bg: #f3f4f6;
+            --sidebar-bg: #f8fafc;
+            --hover-color: #e0e7ff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 300px;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            padding: 2rem 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .sidebar h2 {
+            color: var(--primary-color);
+            font-size: 1.25rem;
+            font-weight: 700;
+            padding: 0 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .sidebar ul {
+            list-style: none;
+        }
+
+        .sidebar ul ul {
+            margin-left: 1rem;
+        }
+
+        .sidebar li {
+            margin: 0.25rem 0;
+        }
+
+        .sidebar a {
+            display: block;
+            color: var(--text-color);
+            text-decoration: none;
+            padding: 0.5rem 2rem;
+            border-radius: 0.375rem;
+            margin: 0 1rem;
+            transition: all 0.2s;
+        }
+
+        .sidebar a:hover {
+            background-color: var(--hover-color);
+            color: var(--primary-color);
+        }
+
+        .sidebar ul ul a {
+            font-size: 0.9rem;
+            padding-left: 2.5rem;
+        }
+
+        /* Main content */
+        .main-content {
+            flex: 1;
+            margin-left: 300px;
+            padding: 2rem;
+            max-width: calc(100vw - 300px);
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem 0;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .header h1 {
+            color: var(--primary-color);
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: #6b7280;
+            font-size: 1.125rem;
+        }
+
+        /* Content sections */
+        section {
+            margin-bottom: 3rem;
+        }
+
+        h2 {
+            color: var(--primary-color);
+            font-size: 1.875rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        h3 {
+            color: var(--secondary-color);
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 2rem 0 1rem 0;
+        }
+
+        h4 {
+            color: var(--text-color);
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 1.5rem 0 0.75rem 0;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            text-align: justify;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin: 1rem 0 1rem 2rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Code blocks */
+        pre {
+            background-color: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        code {
+            background-color: var(--code-bg);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 0.75rem;
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+
+        /* Diagrams */
+        .diagram {
+            background-color: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            font-family: monospace;
+            white-space: pre;
+            overflow-x: auto;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            background-color: var(--accent-color);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin: 0.25rem 0.25rem 0.25rem 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s;
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+                max-width: 100vw;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+
+        /* Scroll behavior */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Section spacing */
+        section:target {
+            padding-top: 2rem;
+            margin-top: -2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <h2>Índice</h2>
+            <ul>
+                <li><a href="#introduccion">Introducción</a></li>
+                <li><a href="#vision-general-de-la-arquitectura">Visión General de la Arquitectura</a></li>
+                <li><a href="#tecnologias-utilizadas">Tecnologías Utilizadas</a></li>
+                <li><a href="#estructura-del-proyecto">Estructura del Proyecto</a></li>
+                <li><a href="#configuracion-del-sistema">Configuración del Sistema</a></li>
+                <li>
+                    <a href="#modulos-principales">Módulos Principales</a>
+                    <ul>
+                        <li><a href="#modulo-de-personas">Módulo de Personas</a></li>
+                        <li><a href="#modulo-de-asistencias">Módulo de Asistencias</a></li>
+                        <li><a href="#sistema-de-deteccion-facial">Sistema de Detección Facial</a></li>
+                    </ul>
+                </li>
+                <li><a href="#flujos-de-trabajo">Flujos de Trabajo</a></li>
+                <li><a href="#gestion-de-archivos-y-medios">Gestión de Archivos y Medios</a></li>
+                <li><a href="#api-y-endpoints">API y Endpoints</a></li>
+                <li><a href="#base-de-datos">Base de Datos</a></li>
+                <li><a href="#guia-de-integracion-con-frontend">Guía de Integración con Frontend</a></li>
+            </ul>
+        </nav>
+
+        <!-- Main content -->
+        <main class="main-content">
+            <div class="header">
+                <h1>Vision-Attendance Backend</h1>
+                <p>Documentación Técnica Completa</p>
+            </div>
+
+            <section id="introduccion">
+                <h2>Introducción</h2>
+                <p><strong>Vision-Attendance</strong> es un sistema de control de asistencia basado en reconocimiento facial. Esta aplicación permite automatizar el registro de asistencia mediante la identificación de personas utilizando una cámara y algoritmos de reconocimiento facial, eliminando la necesidad de métodos tradicionales como listas en papel o tarjetas de identificación.</p>
+                
+                <p><strong>Propósito del Sistema:</strong> Proveer un método eficiente, preciso y moderno para registrar la asistencia en entornos educativos o laborales mediante tecnología de reconocimiento facial.</p>
+                
+                <h3>Componentes Principales</h3>
+                <ul>
+                    <li><strong>Backend:</strong> Servidor que gestiona la lógica de negocio, procesa las imágenes, realiza el reconocimiento facial y almacena los datos.</li>
+                    <li><strong>Frontend:</strong> Interfaz de usuario para administrar personas, visualizar asistencias y controlar el sistema.</li>
+                </ul>
+            </section>
+
+            <section id="vision-general-de-la-arquitectura">
+                <h2>Visión General de la Arquitectura</h2>
+                <p>El backend de Vision-Attendance está construido siguiendo una <strong>arquitectura modular</strong> que separa las responsabilidades en componentes claramente definidos. Este diseño facilita el mantenimiento, escalabilidad y comprensión del sistema.</p>
+                
+                <h3>Diagrama de Alto Nivel</h3>
+                <div class="diagram">┌───────────────────┐     ┌───────────────────────────┐     ┌───────────────────┐
+│                   │     │                           │     │                   │
+│     Frontend      │◄────┤       Backend API         │◄────┤   Base de Datos   │
+│     (React)       │     │       (FastAPI)           │     │    (MongoDB)      │
+│                   │     │                           │     │                   │
+└───────────────────┘     └───────────────────────────┘     └───────────────────┘
+                                      │
+                          ┌───────────┴───────────┐
+                          │                       │
+                          │   Sistema de Visión   │
+                          │      Computacional    │
+                          │                       │
+                          └───────────────────────┘</div>
+                
+                <h3>Flujo de Datos</h3>
+                <ol>
+                    <li>La cámara captura imágenes de las personas.</li>
+                    <li>El sistema de visión computacional detecta y reconoce rostros.</li>
+                    <li>La API backend procesa esta información y la almacena en la base de datos.</li>
+                    <li>El frontend consulta la API para mostrar información y permitir la gestión del sistema.</li>
+                </ol>
+            </section>
+
+            <section id="tecnologias-utilizadas">
+                <h2>Tecnologías Utilizadas</h2>
+                <p>El backend de Vision-Attendance está construido sobre un stack tecnológico moderno y potente:</p>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin: 2rem 0;">
+                    <div style="padding: 1rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                        <strong>FastAPI</strong><br>
+                        Framework web de Python que facilita la creación de APIs RESTful de alto rendimiento.
+                    </div>
+                    <div style="padding: 1rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                        <strong>MongoDB</strong><br>
+                        Base de datos NoSQL orientada a documentos para almacenamiento flexible de datos.
+                    </div>
+                    <div style="padding: 1rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                        <strong>Motor</strong><br>
+                        Cliente asincrónico para MongoDB diseñado para trabajar con FastAPI.
+                    </div>
+                    <div style="padding: 1rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                        <strong>OpenCV</strong><br>
+                        Biblioteca de visión por computadora utilizada para procesamiento de imágenes y detección facial.
+                    </div>
+                    <div style="padding: 1rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                        <strong>Pydantic</strong><br>
+                        Biblioteca para validación de datos y configuración basada en tipos de Python.
+                    </div>
+                    <div style="padding: 1rem; border: 1px solid var(--border-color); border-radius: 0.5rem;">
+                        <strong>Python-Multipart</strong><br>
+                        Para manejo de formularios multipart (subida de archivos).
+                    </div>
+                </div>
+            </section>
+
+            <section id="estructura-del-proyecto">
+                <h2>Estructura del Proyecto</h2>
+                <p>El backend sigue una estructura organizada por módulos funcionales:</p>
+                
+                <pre><code>backend/
+├── app/
+│   ├── core/               # Configuraciones centrales del sistema
+│   │   └── config.py       # Configuración y variables de entorno
+│   ├── modules/            # Módulos funcionales
+│   │   ├── people/         # Gestión de personas
+│   │   └── attendances/    # Gestión de asistencias y detección facial
+│   ├── static/             # Archivos estáticos (fotos de personas)
+│   ├── utils/              # Utilidades varias
+│   ├── main.py             # Punto de entrada de la aplicación
+│   └── __init__.py
+├── .env.example            # Plantilla de variables de entorno
+└── environment_*.yml       # Configuración de entorno para diferentes SO</code></pre>
+            </section>
+
+            <section id="configuracion-del-sistema">
+                <h2>Configuración del Sistema</h2>
+                <p>El sistema utiliza variables de entorno para su configuración, lo que permite modificar el comportamiento sin cambiar el código.</p>
+                
+                <h3>Variables de entorno principales</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Variable</th>
+                            <th>Descripción</th>
+                            <th>Valor por defecto</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>MONGODB_URI</td><td>URL de conexión a MongoDB</td><td>mongodb://localhost:27017</td></tr>
+                        <tr><td>DB_NAME</td><td>Nombre de la base de datos</td><td>attendance_db</td></tr>
+                        <tr><td>MEDIA_ROOT</td><td>Directorio para almacenar archivos estáticos</td><td>app/static</td></tr>
+                        <tr><td>DEVICE_ID</td><td>Identificador del dispositivo de captura</td><td>default</td></tr>
+                        <tr><td>DEVICE_TYPE</td><td>Tipo de dispositivo (webcam/rtsp)</td><td>webcam</td></tr>
+                        <tr><td>DEVICE_WIDTH</td><td>Ancho de captura de la cámara</td><td>640</td></tr>
+                        <tr><td>DEVICE_HEIGHT</td><td>Alto de captura de la cámara</td><td>480</td></tr>
+                        <tr><td>DEVICE_FPS</td><td>Fotogramas por segundo</td><td>30</td></tr>
+                        <tr><td>DEBOUNCE_SECONDS</td><td>Tiempo mínimo entre registros de asistencia</td><td>300</td></tr>
+                    </tbody>
+                </table>
+                
+                <p>Para configurar el sistema, copia <code>.env.example</code> a <code>.env</code> y modifica los valores según necesites.</p>
+            </section>
+
+            <section id="modulos-principales">
+                <h2>Módulos Principales</h2>
+                
+                <section id="modulo-de-personas">
+                    <h3>Módulo de Personas</h3>
+                    <p>Este módulo gestiona la información de todas las personas que serán reconocidas por el sistema.</p>
+                    
+                    <h4>Funcionalidades principales</h4>
+                    <ul>
+                        <li><strong>Registro de personas:</strong> Almacena datos básicos como nombre, email, grado y grupo.</li>
+                        <li><strong>Gestión de fotografías:</strong> Permite asociar una imagen facial a cada persona para su posterior reconocimiento.</li>
+                        <li><strong>CRUD completo:</strong> Crear, leer, actualizar y eliminar registros de personas.</li>
+                    </ul>
+                    
+                    <h4>Estructura del módulo</h4>
+                    <pre><code>people/
+├── __init__.py
+├── repository.py    # Acceso a datos en MongoDB
+├── router.py        # Endpoints de API
+├── schemas.py       # Modelos de datos y validación
+├── service.py       # Lógica de negocio
+└── storage.py       # Gestión de almacenamiento de fotos</code></pre>
+                    
+                    <h4>Modelo de datos de una Persona</h4>
+                    <table>
+                        <thead>
+                            <tr><th>Campo</th><th>Tipo</th><th>Descripción</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>id</td><td>string</td><td>Identificador único</td></tr>
+                            <tr><td>full_name</td><td>string</td><td>Nombre completo</td></tr>
+                            <tr><td>email</td><td>string (opcional)</td><td>Correo electrónico</td></tr>
+                            <tr><td>grade</td><td>string (opcional)</td><td>Grado o curso</td></tr>
+                            <tr><td>group</td><td>string (opcional)</td><td>Grupo o división</td></tr>
+                            <tr><td>has_photo</td><td>boolean</td><td>Indica si tiene foto asociada</td></tr>
+                            <tr><td>photo_url</td><td>string (opcional)</td><td>URL relativa de la foto</td></tr>
+                            <tr><td>created_at</td><td>datetime</td><td>Fecha de creación</td></tr>
+                            <tr><td>updated_at</td><td>datetime</td><td>Fecha de última actualización</td></tr>
+                        </tbody>
+                    </table>
+                </section>
+
+                <section id="modulo-de-asistencias">
+                    <h3>Módulo de Asistencias</h3>
+                    <p>Este módulo maneja el proceso de detección facial y registro de asistencias.</p>
+                    
+                    <h4>Funcionalidades principales</h4>
+                    <ul>
+                        <li><strong>Detección facial:</strong> Identifica rostros en tiempo real mediante la cámara.</li>
+                        <li><strong>Reconocimiento facial:</strong> Compara los rostros detectados con la base de datos de personas.</li>
+                        <li><strong>Registro de asistencias:</strong> Almacena automáticamente la fecha y hora cuando una persona es reconocida.</li>
+                        <li><strong>Consulta de asistencias:</strong> Permite filtrar y visualizar los registros de asistencia.</li>
+                    </ul>
+                    
+                    <h4>Estructura del módulo</h4>
+                    <pre><code>attendances/
+├── __init__.py
+├── extract_face.py     # Extracción de características faciales
+├── face_detector.py    # Detección y reconocimiento facial
+├── loop_manager.py     # Gestión del bucle de captura
+├── repository.py       # Acceso a datos en MongoDB
+├── router.py           # Endpoints de API
+├── schema.py           # Modelos de datos y validación
+├── service.py          # Lógica de negocio
+└── video_capture.py    # Gestión de captura de video</code></pre>
+                    
+                    <h4>Modelo de datos de una Asistencia</h4>
+                    <table>
+                        <thead>
+                            <tr><th>Campo</th><th>Tipo</th><th>Descripción</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>id</td><td>string</td><td>Identificador único</td></tr>
+                            <tr><td>person_id</td><td>string</td><td>ID de la persona reconocida</td></tr>
+                            <tr><td>attendance_time</td><td>datetime</td><td>Momento exacto del registro</td></tr>
+                        </tbody>
+                    </table>
+                </section>
+
+                <section id="sistema-de-deteccion-facial">
+                    <h3>Sistema de Detección Facial</h3>
+                    <p>El corazón del sistema Vision-Attendance es su capacidad de detectar y reconocer rostros automáticamente.</p>
+                    
+                    <h4>Componentes clave</h4>
+                    <ul>
+                        <li><strong>Captura de video:</strong> Gestiona la conexión con la cámara y obtiene fotogramas en tiempo real.</li>
+                        <li><strong>Detector facial:</strong> Identifica la presencia y ubicación de rostros humanos en las imágenes.</li>
+                        <li><strong>Extractor de características:</strong> Obtiene información distintiva de cada rostro detectado.</li>
+                        <li><strong>Comparador facial:</strong> Compara los rostros detectados con la base de datos de personas registradas.</li>
+                        <li><strong>Gestor de debounce:</strong> Evita registros múltiples de la misma persona en un corto período de tiempo.</li>
+                    </ul>
+                    
+                    <h4>Flujo del proceso de detección</h4>
+                    <ol>
+                        <li>Captura continua de imágenes desde la cámara.</li>
+                        <li>Análisis de cada fotograma para detectar rostros.</li>
+                        <li>Para cada rostro detectado, extracción de características faciales.</li>
+                        <li>Comparación de estas características con las almacenadas en la base de datos.</li>
+                        <li>Si hay coincidencia con confianza suficiente, se registra la asistencia.</li>
+                        <li>Se aplica un "debounce" para evitar registros duplicados en corto tiempo.</li>
+                    </ol>
+                </section>
+            </section>
+
+            <section id="flujos-de-trabajo">
+                <h2>Flujos de Trabajo</h2>
+                
+                <h3>1. Registro de Personas</h3>
+                <p><strong>Descripción:</strong> Proceso para añadir nuevas personas al sistema.</p>
+                <h4>Pasos:</h4>
+                <ol>
+                    <li>Acceder al endpoint <code>/people/</code> con método POST.</li>
+                    <li>Enviar datos personales (nombre, email, etc.) y opcionalmente una fotografía.</li>
+                    <li>El sistema valida los datos y la imagen (si se proporciona).</li>
+                    <li>Se almacenan los datos personales en MongoDB.</li>
+                    <li>Si hay foto, se guarda en el sistema de archivos y se asocia a la persona.</li>
+                </ol>
+                <h4>Ejemplo de uso:</h4>
+                <pre><code>POST /people/
+Content-Type: multipart/form-data
+
+full_name: "Juan Pérez"
+email: "juan@example.com"
+grade: "5to"
+group: "A"
+photo: [archivo binario]</code></pre>
+
+                <h3>2. Actualización de Personas</h3>
+                <p><strong>Descripción:</strong> Modificación de los datos de una persona existente.</p>
+                <h4>Pasos:</h4>
+                <ol>
+                    <li>Acceder al endpoint <code>/people/{person_id}</code> con método PUT.</li>
+                    <li>Enviar los nuevos datos que se desean actualizar.</li>
+                    <li>El sistema verifica que la persona exista.</li>
+                    <li>Se actualizan los campos necesarios.</li>
+                </ol>
+
+                <h3>3. Gestión de Fotografías</h3>
+                <p><strong>Descripción:</strong> Agregar, actualizar o eliminar la foto de una persona.</p>
+                
+                <h4>Pasos para agregar/actualizar:</h4>
+                <ol>
+                    <li>Acceder al endpoint <code>/people/{person_id}/photo</code> con método PUT.</li>
+                    <li>Enviar la nueva fotografía en formato multipart/form-data.</li>
+                    <li>El sistema valida el formato y calidad de la imagen.</li>
+                    <li>Si la persona ya tenía foto, se elimina la anterior.</li>
+                    <li>Se guarda la nueva imagen y se actualiza la referencia.</li>
+                </ol>
+                
+                <h4>Pasos para eliminar:</h4>
+                <ol>
+                    <li>Acceder al endpoint <code>/people/{person_id}/photo</code> con método DELETE.</li>
+                    <li>El sistema elimina el archivo físico.</li>
+                    <li>Se actualiza el registro para reflejar que ya no tiene foto.</li>
+                </ol>
+
+                <h3>4. Iniciar Detección de Asistencias</h3>
+                <p><strong>Descripción:</strong> Activa el sistema de reconocimiento facial para registrar asistencias.</p>
+                <h4>Pasos:</h4>
+                <ol>
+                    <li>Acceder al endpoint <code>/attendances/start</code> con método POST.</li>
+                    <li>El sistema inicia la captura de video y el proceso de detección.</li>
+                    <li>Por cada rostro reconocido, se registra una asistencia en la base de datos.</li>
+                    <li>El proceso continúa hasta que se detiene explícitamente.</li>
+                </ol>
+
+                <h3>5. Consulta de Asistencias</h3>
+                <p><strong>Descripción:</strong> Obtener el historial de asistencias con posibilidad de filtrado.</p>
+                <h4>Pasos:</h4>
+                <ol>
+                    <li>Acceder al endpoint <code>/attendances/</code> con método GET.</li>
+                    <li>Opcionalmente, añadir filtros como rango de fechas o ID de persona.</li>
+                    <li>El sistema consulta la base de datos y devuelve los registros que cumplen los criterios.</li>
+                </ol>
+                <h4>Ejemplo de uso:</h4>
+                <pre><code>GET /attendances/?person_id=507f1f77bcf86cd799439011&start_time=2023-05-01:00:00:00&end_time=2023-05-31:23:59:59</code></pre>
+            </section>
+
+            <section id="gestion-de-archivos-y-medios">
+                <h2>Gestión de Archivos y Medios</h2>
+                <p>El sistema almacena y gestiona fotografías de las personas para el reconocimiento facial.</p>
+                
+                <h3>Almacenamiento de imágenes</h3>
+                <ul>
+                    <li>Las fotos se guardan en el directorio especificado por <code>MEDIA_ROOT</code> (por defecto: <code>app/static</code>).</li>
+                    <li>Cada imagen recibe un nombre único basado en el ID de la persona y un timestamp.</li>
+                    <li>Las imágenes se sirven a través del endpoint <code>/static/</code> para acceso desde el frontend.</li>
+                </ul>
+                
+                <h3>Formatos soportados</h3>
+                <ul>
+                    <li>JPEG (.jpg, .jpeg)</li>
+                    <li>PNG (.png)</li>
+                </ul>
+                
+                <h3>Proceso de manipulación de imágenes</h3>
+                <ol>
+                    <li>Al recibir una imagen, se valida su formato y tamaño.</li>
+                    <li>Se procesa para optimizar su uso en reconocimiento facial (redimensionado, normalización).</li>
+                    <li>Se almacena en el sistema de archivos.</li>
+                    <li>Se genera una URL relativa que se asocia a la persona en la base de datos.</li>
+                </ol>
+            </section>
+
+            <section id="api-y-endpoints">
+                <h2>API y Endpoints</h2>
+                
+                <h3>Endpoints del Módulo de Personas</h3>
+                <table>
+                    <thead>
+                        <tr><th>Método</th><th>Endpoint</th><th>Descripción
