@@ -82,9 +82,9 @@ Errores estandarizados:
 conda activate vision-attendances-backend
 
 # Ejecutar el servidor
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --app-dir backend
+python -m uvicorn app.main:app --host localhost --port 8000 --app-dir backend
 # con autoreload en desarrollo:
-# python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 --app-dir backend
+# python -m uvicorn app.main:app --reload --host localhost --port 8000 --app-dir backend
 
 # En caso de obtener el sisguiente error:
 # Please install `face_recognition_models` with this command before using # `face_recognition`:

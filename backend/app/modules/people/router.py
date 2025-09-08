@@ -51,11 +51,15 @@ async def create_person(
         "group": group,
     }
     try:
-        doc = await service.create_person_with_photo(db, data, photo)
+        doc = await service.create_person(db, data, photo)
         return doc
     except ValueError as e:
+        # TODO: Eliminar print
+        print(e)
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        # TODO: Eliminar print
+        print(e)
         raise HTTPException(status_code=500, detail=f"No se pudo guardar la imagen: {e}")
 
 

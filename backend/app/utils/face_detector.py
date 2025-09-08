@@ -1,19 +1,22 @@
-import os
-from typing import Union
 import cv2
 import face_recognition
 import numpy as np
 
-from .video_capture import VideoCapture, VideoConfig
-from ...utils.face_utils import resolve_haarcascade
-from .loop_manager import LoopManager
-from ..people.storage import get_media_dir as get_people_media_dir
+from ..modules.attendances.video_capture import VideoCapture, VideoConfig
+from .face_utils import resolve_haarcascade
+from ..modules.attendances.loop_manager import LoopManager
+
+
+class Face:
+    def __init__(self, id, name, encoding):
+        self.id = id
+        self.name = name
+        self.encoding = encoding
 
 
 class FaceDetector:
     _cap: VideoCapture
     _face_detector: cv2.CascadeClassifier
-    _faces_folder: str
     _loop_manager: LoopManager = LoopManager(lambda: face_detector._start_detection())
 
     # Parámetros de rendimiento
@@ -22,59 +25,25 @@ class FaceDetector:
     last_detections = []  # lista de tuplas (X,Y,W,H,name,color)
 
     # Parámetros de codificación
-    faces_encodings = []
-    faces_names = []
-
+    faces: list[Face] = []
+    faces_encodings: list[np.ndarray] = []
+    
+    # Listeners
     detect_faces_listeners = []
 
-    def __init__(self, cap: VideoCapture, faces_folder: str) -> None:
+    def __init__(self, cap: VideoCapture) -> None:
         self._cap = cap
         self._face_detector = cv2.CascadeClassifier(resolve_haarcascade())
-        self._faces_folder = faces_folder
 
         self._cap.add_listener(lambda frame: self.detect_faces(frame))
 
-        if not os.path.exists(faces_folder):
-            os.makedirs(faces_folder, exist_ok=True)
-        else:
-            self.load_faces_from_folder(faces_folder)
+    def load_faces(self, faces: list[Face]):
+        self.faces = faces
+        self.faces_encodings = [f.encoding for f in faces]
 
-    def _get_encodings(self, image: np.ndarray) -> Union[np.ndarray, None]:
-        """Obtiene los embeddings de un rostro en una imagen."""
-        try:
-            # Convertir a RGB y redimensionar para acelerar el cómputo
-            image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            image_rgb_small = cv2.resize(image_rgb, (150, 150))
-            # Asegurar que sea contiguo en memoria
-            image_rgb_small = np.ascontiguousarray(image_rgb_small, dtype=np.uint8)
-            encodings = face_recognition.face_encodings(
-                image_rgb_small, known_face_locations=[(0, 150, 150, 0)]
-            )
-            return encodings[0] if encodings else None
-        except Exception as e:
-            print(f"Error al obtener encodings: {e}")
-            return None
-
-    def load_faces_from_folder(self, folder_path: str):
-        """Carga los rostros desde una carpeta y  carga los encodings."""
-        loaded_count = 0
-        for file_name in os.listdir(folder_path):
-            file_path = os.path.join(folder_path, file_name)
-            image = cv2.imread(file_path)
-            if image is None:
-                print(
-                    f"Error al cargar la imagen: {file_name}. Verifica que sea una imagen válida."
-                )
-                continue
-
-            encoding = self._get_encodings(image)
-            if encoding is not None:
-                self.faces_encodings.append(encoding)
-                self.faces_names.append(file_name.split(".")[0])
-                loaded_count += 1
-            else:
-                print(f"No se detectó un rostro válido en la imagen: {file_name}")
-        print(f"Se cargaron {loaded_count} rostros desde '{folder_path}'")
+    def append_face(self, id: str, name: str, encodings: np.ndarray) -> None:
+        self.faces.append(Face(id, name, encodings))
+        self.faces_encodings.append(encodings)
 
     def _draw_label(
         self,
@@ -169,7 +138,7 @@ class FaceDetector:
                         )
                         if True in result:
                             index = result.index(True)
-                            name = self.faces_names[index]
+                            name = self.faces[index].name
                             color = (125, 220, 0)
                     current.append((X, Y, W, H, name, color))
             self.last_detections = current
@@ -200,6 +169,8 @@ class FaceDetector:
 
     def start_detection(self):
         """Presiona q para finalizar"""
+        if not self.faces:
+            print("⚠️ No hay rostros conocidos por detectar.")
         self._loop_manager.start()
         self.is_running = True
         
@@ -214,4 +185,4 @@ cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 cap.set(cv2.CAP_PROP_FPS, 30)
 cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
-face_detector = FaceDetector(cap, get_people_media_dir())
+face_detector = FaceDetector(cap)

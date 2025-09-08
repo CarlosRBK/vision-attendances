@@ -6,6 +6,8 @@ from typing import Any, Dict, List, Optional
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
+from ...utils.face_detector import Face
+
 COLLECTION = "people"
 
 
@@ -20,13 +22,12 @@ def _serialize(doc: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "id": str(doc.get("_id")),
         "full_name": doc.get("full_name"),
+        "photo": doc.get("photo"),
         "email": doc.get("email"),
         "grade": doc.get("grade"),
         "group": doc.get("group"),
         "created_at": doc.get("created_at"),
         "updated_at": doc.get("updated_at"),
-        # raw field for service mapping
-        "photo_path": doc.get("photo_path"),
     }
 
 
@@ -55,16 +56,15 @@ async def get_person_raw(db: AsyncIOMotorDatabase, person_id: str) -> Optional[D
 async def create_person(db: AsyncIOMotorDatabase, data: Dict[str, Any]) -> Dict[str, Any]:
     now = datetime.now(timezone.utc)
     doc = {
-        "full_name": data["full_name"],
+        "full_name": data.get("full_name"),
         "email": data.get("email"),
         "grade": data.get("grade"),
         "group": data.get("group"),
+        "face_encodings": data.get("face_encodings"),
+        "photo": data.get("photo"),
         "created_at": now,
         "updated_at": None,
     }
-    # Optional local path to saved photo
-    if data.get("photo_path"):
-        doc["photo_path"] = data["photo_path"]
     res = await db[COLLECTION].insert_one(doc)
     created = await db[COLLECTION].find_one({"_id": res.inserted_id})
     if not created:
@@ -92,3 +92,8 @@ async def delete_person(db: AsyncIOMotorDatabase, person_id: str) -> bool:
     oid = _ensure_object_id(person_id)
     res = await db[COLLECTION].delete_one({"_id": oid})
     return res.deleted_count > 0
+
+
+async def get_faces(db: AsyncIOMotorDatabase) -> List[Face]:
+    cursor = db[COLLECTION].find({"face_encodings": {"$exists": True}})
+    return [Face(d["id"], d["name"], d["face_encodings"]) async for d in cursor]

@@ -1,6 +1,10 @@
+import base64
 import os
 import cv2
 import cv2.data
+import face_recognition
+from fastapi import UploadFile
+import numpy as np
 
 def resolve_haarcascade() -> str:
     """
@@ -46,7 +50,7 @@ def resolve_haarcascade() -> str:
         "Instala opencv con conda-forge o especifica la ruta manualmente."
     )
 
-def detect_faces(image):
+def detect_faces(image: np.ndarray):
     """
     Detecta rostros en una imagen usando Haarcascade.
     Retorna lista de (x, y, w, h).
@@ -55,3 +59,35 @@ def detect_faces(image):
     face_detector = cv2.CascadeClassifier(resolve_haarcascade())
     faces = face_detector.detectMultiScale(gray, 1.1, 5)
     return faces
+
+def crop_face(image: np.ndarray):
+    """
+    Recorta una imagen en un rostro.
+    Retorna una imagen con la cara en rojo.
+    """
+    face_locations = face_recognition.face_locations(image)
+    if not face_locations:
+        raise ValueError("No faces found in the image.")
+    face = face_locations[0]
+    top, right, bottom, left = face
+    cropped = image[top:bottom, left:right]
+    return cropped
+
+def get_face_encodings(image: np.ndarray) -> np.ndarray:
+    face_encodings = face_recognition.face_encodings(image)
+    if not face_encodings:
+        raise Exception("No faces found in the image.")
+    encoding = face_encodings[0]
+    return encoding
+
+def numpy_to_base64(image: np.ndarray, format: str = 'jpeg') -> str:
+    if format == 'jpeg':
+        _, buffer = cv2.imencode('.jpg', image)
+    elif format == 'png':
+        _, buffer = cv2.imencode('.png', image)
+    else:
+        raise ValueError("Unsupported format. Use 'jpeg' or 'png'.")
+
+    # Convierte los bytes a Base64
+    img_base64 = base64.b64encode(buffer).decode("utf-8")
+    return img_base64

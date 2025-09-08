@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from . import repository as repo
-from .face_detector import face_detector
+from ...utils.face_detector import face_detector
 
 
 async def list_attendances(

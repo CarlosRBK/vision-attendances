@@ -8,7 +8,7 @@ dependencies:
   - dlib==20.0.*  # Dlib for face detection and recognition
   - cmake # CMake for building C/C++ extensions, required by dlib
 
-  - numpy=2.2.* # NumPy for numerical operations
+  1 # NumPy for numerical operations
   - pip:
     - fastapi[standard]==0.116.* # FastAPI framework
     - uvicorn[standard]==0.35.* # ASGI server for FastAPI
