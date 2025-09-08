@@ -18,11 +18,12 @@ def _ensure_object_id(id_str: str) -> ObjectId:
         raise ValueError("Invalid ObjectId") from e
 
 
-def _serialize(doc: Dict[str, Any]) -> Dict[str, Any]:
+def _serialize(doc: Dict[str, Any], include_embeds: bool = False) -> Dict[str, Any]:
     return {
         "id": str(doc.get("_id")),
         "full_name": doc.get("full_name"),
         "photo": doc.get("photo"),
+        "face_encodings": doc.get("face_encodings") if include_embeds else None,
         "email": doc.get("email"),
         "grade": doc.get("grade"),
         "group": doc.get("group"),
@@ -31,7 +32,7 @@ def _serialize(doc: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-async def list_people(db: AsyncIOMotorDatabase, skip: int = 0, limit: int = 50) -> List[Dict[str, Any]]:
+async def list_people(db: AsyncIOMotorDatabase, skip: int = 0, limit: int = 50, include_embeds: bool = False) -> List[Dict[str, Any]]:
     cursor = (
         db[COLLECTION]
         .find({})
@@ -39,7 +40,7 @@ async def list_people(db: AsyncIOMotorDatabase, skip: int = 0, limit: int = 50) 
         .skip(int(skip))
         .limit(int(limit))
     )
-    return [_serialize(d) async for d in cursor]
+    return [_serialize(d, include_embeds) async for d in cursor]
 
 
 async def get_person(db: AsyncIOMotorDatabase, person_id: str) -> Optional[Dict[str, Any]]:

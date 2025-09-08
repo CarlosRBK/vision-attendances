@@ -7,6 +7,8 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson.objectid import ObjectId
 import numpy as np
 
+from ...utils.face_detector import face_detector
+
 from ...utils.face_utils import crop_face, get_face_encodings, numpy_to_base64
 
 from . import repository as repo
@@ -76,6 +78,8 @@ async def create_person(
         data = await _add_face_encodings_and_crop_from_file(data, photo)
 
     created = await repo.create_person(db, data)
+
+    face_detector.append_face(person_id, data["full_name"], data["face_encodings"])
 
     return created
 

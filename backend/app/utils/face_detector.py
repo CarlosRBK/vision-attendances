@@ -38,12 +38,19 @@ class FaceDetector:
         self._cap.add_listener(lambda frame: self.detect_faces(frame))
 
     def load_faces(self, faces: list[Face]):
+        """Carga los rostros conocidos. En caso de que ya hayan sido cargados, no hace nada.
+        """
+        if len(self.faces) > 0:
+            return
         self.faces = faces
         self.faces_encodings = [f.encoding for f in faces]
 
     def append_face(self, id: str, name: str, encodings: np.ndarray) -> None:
-        self.faces.append(Face(id, name, encodings))
-        self.faces_encodings.append(encodings)
+        np_encodings = np.array(encodings)
+        if np_encodings.shape != (1, 512):
+            raise ValueError("Encodings must be a 1D array of 512 floats.")
+        self.faces.append(Face(id, name, np_encodings))
+        self.faces_encodings.append(np_encodings)
 
     def _draw_label(
         self,

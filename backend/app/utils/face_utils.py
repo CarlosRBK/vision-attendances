@@ -3,7 +3,6 @@ import os
 import cv2
 import cv2.data
 import face_recognition
-from fastapi import UploadFile
 import numpy as np
 
 def resolve_haarcascade() -> str:
