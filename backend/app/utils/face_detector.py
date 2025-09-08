@@ -8,10 +8,19 @@ from ..modules.attendances.loop_manager import LoopManager
 
 
 class Face:
-    def __init__(self, id, name, encoding):
+    def __init__(self, id: str, name: str, encoding: np.ndarray):
         self.id = id
         self.name = name
         self.encoding = encoding
+
+
+class FaceDetectionData():
+    def __init__(self, x: int, y: int, w: int, h: int, face: Face | None):
+        self.identity = face
+        self.x = x
+        self.y = y
+        self.w = w
+        self.h = h
 
 
 class FaceDetector:
@@ -22,12 +31,12 @@ class FaceDetector:
     # Parámetros de rendimiento
     process_every_n = 2  # procesa 1 de cada 2 cuadros
     scale = 0.5  # detectar a media resolución
-    last_detections = []  # lista de tuplas (X,Y,W,H,name,color)
+    last_detections: list[FaceDetectionData] = []
 
     # Parámetros de codificación
     faces: list[Face] = []
     faces_encodings: list[np.ndarray] = []
-    
+
     # Listeners
     detect_faces_listeners = []
 
@@ -38,6 +47,9 @@ class FaceDetector:
         self._cap.add_listener(lambda frame: self.detect_faces(frame))
 
     def load_faces(self, faces: list[Face]):
+        """Carga los rostros conocidos. En caso de que ya hayan sido cargados, no hace nada."""
+        if len(self.faces) > 0:
+            return
         """Carga los rostros conocidos. En caso de que ya hayan sido cargados, no hace nada.
         """
         if len(self.faces) > 0:
@@ -107,6 +119,20 @@ class FaceDetector:
             cv2.LINE_AA,
         )
 
+    def _mark_face(self, frame: cv2.typing.MatLike, face_detection: FaceDetectionData):
+        """Dibuja un rectángulo y un texto en la posición de la rostro detectado."""
+        X = face_detection.x
+        Y = face_detection.y
+        W = face_detection.w
+        H = face_detection.h
+        name = "Desconocido"
+        color = (50, 50, 255)
+        if face_detection.identity:
+            name = face_detection.identity.name
+            color = (0, 255, 0)
+        cv2.rectangle(frame, (X, Y), (X + W, Y + H), color, 2)
+        self._draw_label(frame, X, Y, W, H, name, color)
+
     def detect_faces(self, frame: cv2.typing.MatLike):
         frame = cv2.flip(frame, 1)
         process_this_frame = self._cap.frame_count % self.process_every_n == 0
@@ -131,38 +157,48 @@ class FaceDetector:
                     roi_rgb_small = cv2.resize(roi_rgb, (150, 150))
                     # Asegurar uint8 y contigüidad en memoria (evita errores en Windows/dlib)
                     roi_rgb_small = np.ascontiguousarray(roi_rgb_small, dtype=np.uint8)
-                    encs = face_recognition.face_encodings(
+
+                    # Detectar rostros
+                    encodings = face_recognition.face_encodings(
                         roi_rgb_small,
                         known_face_locations=[(0, 150, 150, 0)],
                         num_jitters=1,
                     )
-                    name = "Desconocido"
-                    color = (50, 50, 255)
-                    if encs:
-                        actual = encs[0]
+                    face_data = None
+
+                    # Si se identifica un rostro, guardarlo
+                    if encodings:
+                        actual = encodings[0]
                         result = face_recognition.compare_faces(
                             self.faces_encodings, actual
                         )
                         if True in result:
                             index = result.index(True)
-                            name = self.faces[index].name
-                            color = (125, 220, 0)
-                    current.append((X, Y, W, H, name, color))
+                            face_data = self.faces[index]
+
+                    # Guardar la información del rostro detectada
+                    current.append(
+                        FaceDetectionData(
+                            X, Y, W, H, face_data
+                        )
+                    )
+
+            # Guardar la información de las rostros detectados en este cuadro
             self.last_detections = current
-        # Dibujo de las últimas detecciones conocidas (evitar desbordes del texto)
-        for X, Y, W, H, name, color in self.last_detections:
-            cv2.rectangle(frame, (X, Y), (X + W, Y + H), color, 2)
-            self._draw_label(frame, X, Y, W, H, name, color)
+        
+        # Dibujo de las últimas detecciones conocidas
+        for face_detection in self.last_detections:
+            self._mark_face(frame, face_detection)
 
         # Llamar a los listeners
-        if len(self.detect_faces_listeners) > 0:
-            for listener in self.detect_faces_listeners:
-                self._loop_manager.delegar_async(
-                    listener,
-                    self.last_detections,
-                )
+        for listener in self.detect_faces_listeners:
+            self._loop_manager.delegate_async(
+                listener,
+                self.last_detections,
+            )
 
         cv2.imshow("Frame", frame)
+        
         if cv2.waitKey(1) & 0xFF == ord("q"):
             self._loop_manager.stop()
 
@@ -180,7 +216,7 @@ class FaceDetector:
             print("⚠️ No hay rostros conocidos por detectar.")
         self._loop_manager.start()
         self.is_running = True
-        
+
     def stop_detection(self):
         self._loop_manager.stop()
         self.is_running = False

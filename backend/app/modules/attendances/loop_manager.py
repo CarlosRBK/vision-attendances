@@ -48,10 +48,12 @@ class LoopManager:
         """Devuelve True si no se ha marcado stop_event."""
         return self.running_event.is_set()
 
-    def delegar_async(self, coro_func, *args, **kwargs):
+    def delegate_async(self, coro_func, *args, **kwargs):
         """
         Encola una coroutine para ser ejecutada por el worker.
-        coro_func: función async (no ejecutada todavía)
+
+        Args:
+            coro_func: función async (no ejecutada todavía)
         """
         self.task_queue.put((coro_func, args, kwargs))
 

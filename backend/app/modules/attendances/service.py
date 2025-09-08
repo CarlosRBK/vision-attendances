@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from . import repository as repo
+from ..people import repository as people_repo
+from ...utils.face_detector import Face, FaceDetectionData, face_detector
 from ..people import repository as people_repo
 from ...utils.face_detector import Face, face_detector
 
@@ -29,6 +31,23 @@ async def list_attendances(
 
 
 async def start_registration(db: AsyncIOMotorDatabase):
+    async def _marcar_asistencia(detected_faces: list[FaceDetectionData]):
+        print(f"Detectadas {len(detected_faces)} rostros")
+        for face in detected_faces:
+            if not face.identity:
+                continue
+            print(f"Marcando asistencia para {face.identity.name}")
+            await repo.create_attendance(db, face.identity.id)
+    
+    # Cargar rostros conocidos
+    if not face_detector.faces:
+        people = await people_repo.list_people(db, include_embeds=True)
+        faces = []
+        for person in people:
+            faces.append(Face(person["id"], person["full_name"], person["face_encodings"]))
+        face_detector.load_faces(faces)
+    
+    # Indicar que hacer al detectar rostros
     async def _marcar_asistencia(faces: List[Tuple[int, int, int, int, str, str]]):
         for face in faces:
             X, Y, W, H, name, color = face
