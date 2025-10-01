@@ -6,6 +6,7 @@ from typing import Optional
 from uuid import uuid4
 
 import cv2
+import numpy as np
 from fastapi import UploadFile
 
 from ...core.config import settings
@@ -43,33 +44,32 @@ async def save_person_photo(file: UploadFile, full_name: str) -> str:
 
     abs_dir = ensure_media_dir()
 
-    # Forzamos a JPG optimizado
+    # Forzamos a JPG; añadimos sufijo único para evitar colisiones por nombre
     ext = ".jpg"
-    filename = normalize_filename(full_name) + ext
+    filename = f"{normalize_filename(full_name)}_{uuid4().hex[:8]}{ext}"
     abs_path = os.path.join(abs_dir, filename)
 
-    temp_path = abs_path + ".tmp"
+    # Leer bytes y decodificar en memoria
     data = await file.read()
-    with open(temp_path, "wb") as f:
-        f.write(data)
+    if not data:
+        raise ValueError("El archivo de imagen está vacío.")
 
-    image = cv2.imread(temp_path)
+    npbuf = np.frombuffer(data, dtype=np.uint8)
+    image = cv2.imdecode(npbuf, cv2.IMREAD_COLOR)
     if image is None:
-        os.remove(temp_path)
         raise ValueError("Error al leer la imagen.")
 
     faces = detect_faces(image)
     if len(faces) == 0:
-        os.remove(temp_path)
         raise ValueError("No se detectó ningún rostro en la imagen.")
 
-    # Usamos la primera cara
-    (x, y, w, h) = faces[0]
-    face = image[y:y+h, x:x+w]
+    # Usar la cara más grande detectada para mayor robustez
+    (x, y, w, h) = max(faces, key=lambda b: b[2] * b[3])
+    face = image[y:y + h, x:x + w]
     face = cv2.resize(face, (150, 150))
 
-    cv2.imwrite(abs_path, face)
-    os.remove(temp_path)
+    # Guardar como JPG con calidad razonable
+    cv2.imwrite(abs_path, face, [int(cv2.IMWRITE_JPEG_QUALITY), 85])
 
     return os.path.join("people_photos", filename).replace("\\", "/")
 
