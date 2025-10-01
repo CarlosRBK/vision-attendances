@@ -1,22 +1,26 @@
 import os
 import cv2
 
+import os
+import sys
+import cv2
+
 def resolve_haarcascade() -> str:
     """
     Devuelve la ruta del clasificador Haar 'haarcascade_frontalface_default.xml'.
-    Compatible con instalaciones de pip, conda-forge y Homebrew.
+    Compatible con pip (Windows/Linux/macOS), conda-forge y Homebrew.
     """
     filename = "haarcascade_frontalface_default.xml"
     candidates = []
 
-    # Ruta estándar en cv2
+    # Ruta estándar en cv2 (funciona en la mayoría de instalaciones pip)
     try:
         data_dir = cv2.data.haarcascades
         candidates.append(os.path.join(data_dir, filename))
     except Exception:
         pass
 
-    # Junto al paquete cv2
+    # Junto al paquete cv2 (fallback por si cambia la estructura)
     candidates.append(os.path.join(os.path.dirname(cv2.__file__), "data", filename))
 
     # Posibles rutas de conda-forge
@@ -28,11 +32,17 @@ def resolve_haarcascade() -> str:
             os.path.join(conda_prefix, "etc", "haarcascades", filename),
         ])
 
-    # Rutas de sistema comunes
+    # Rutas de sistema comunes en Linux/macOS
     candidates.extend([
         "/usr/share/opencv4/haarcascades/" + filename,
         "/usr/local/share/opencv4/haarcascades/" + filename,
         "/opt/homebrew/opt/opencv/share/opencv4/haarcascades/" + filename,
+    ])
+
+    # Rutas típicas de Windows (site-packages)
+    candidates.extend([
+        os.path.join(sys.prefix, "Lib", "site-packages", "cv2", "data", filename),
+        os.path.join(sys.base_prefix, "Lib", "site-packages", "cv2", "data", filename),
     ])
 
     # Buscar la primera existente
@@ -42,7 +52,7 @@ def resolve_haarcascade() -> str:
 
     raise FileNotFoundError(
         "No se encontró el clasificador Haar. "
-        "Instala opencv con conda-forge o especifica la ruta manualmente."
+        "Instala opencv-python (pip) o usa conda-forge, o especifica la ruta manualmente."
     )
 
 def detect_faces(image):
