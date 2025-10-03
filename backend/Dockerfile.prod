@@ -1,0 +1,51 @@
+# Dockerfile optimizado para producción
+FROM python:3.9-slim-bullseye
+
+# Evitar prompts de apt
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Instalar dependencias del sistema (versión optimizada para producción)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    g++ \
+    libopenblas-dev \
+    liblapack-dev \
+    libx11-6 \
+    libgtk-3-0 \
+    libboost-python1.74.0 \
+    python3-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Crear usuario no-root para seguridad
+RUN useradd -m -u 1000 appuser
+
+# Crear directorio de la app
+WORKDIR /app
+
+# Copiar requirements
+COPY requirements.txt .
+
+# Instalar Python dependencies
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copiar el código del proyecto
+COPY . .
+
+# Crear directorio para archivos media
+RUN mkdir -p /app/media && \
+    chown -R appuser:appuser /app
+
+# Cambiar al usuario no-root
+USER appuser
+
+# Exponer el puerto para FastAPI
+EXPOSE 8000
+
+# Comando para producción (sin reload, con múltiples workers)
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]

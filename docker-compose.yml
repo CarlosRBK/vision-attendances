@@ -1,0 +1,83 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: vision-attendance-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    environment:
+      # Override or add additional environment variables here
+      - PYTHONUNBUFFERED=1
+    volumes:
+      # Mount for hot reload during development (comentar en producción)
+      - ./backend/app:/app/app
+      # Persist media files
+      - backend_media:/app/media
+    networks:
+      - vision-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  face-services:
+    build:
+      context: ./face-services
+      dockerfile: Dockerfile
+    container_name: vision-attendance-face-detector
+    ports:
+      - "5001:5001"
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      # Mount for hot reload during development
+      - ./face-services:/app
+      # Compartir carpeta de fotos con backend
+      - backend_media:/app/static/people_photos
+      # Persistir archivos de asistencias
+      - face_services_data:/app/asistencias
+    networks:
+      - vision-network
+    restart: unless-stopped
+    # NOTA: Face-services ahora es un microservicio HTTP (Flask)
+    # Recibe frames desde el frontend vía HTTP POST en /detect
+    # No necesita acceso directo a la cámara ni streaming externo
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Cambiar en producción a la URL del backend en producción
+        - VITE_API_BASE_URL=http://localhost:8000
+    container_name: vision-attendance-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - vision-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  backend_media:
+    driver: local
+  face_services_data:
+    driver: local
+
+networks:
+  vision-network:
+    driver: bridge

@@ -1,17 +1,26 @@
-from typing import Union
+"""
+Face Services - Microservicio HTTP para Detección Facial
+Recibe frames desde el frontend vía HTTP POST y realiza detección facial
+"""
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 import cv2
 import os
 import face_recognition
 import numpy as np
-import time
-import threading
+import base64
 from datetime import datetime
 from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler, FileCreatedEvent, FileDeletedEvent, FileModifiedEvent
+from watchdog.events import FileSystemEventHandler
+import threading
 
+app = Flask(__name__)
+CORS(app)  # Permitir requests desde el frontend
+
+# ==================== CLASES DE SOPORTE ====================
 
 class VideoConfig:
-    def __init__(self, video_source: int = 0, use_optimized: bool = True):
+    def __init__(self, video_source: Union[int, str] = 0, use_optimized: bool = True):
         self.video_source = video_source
         self.use_optimized = use_optimized
 
@@ -23,12 +32,22 @@ class VideoCapture:
 
     def __init__(self, config: VideoConfig):
         cv2.setUseOptimized(config.use_optimized)
+        
+        # Soportar tanto cámara física (int) como stream HTTP (str)
+        if isinstance(config.video_source, str):
+            print(f"[INFO] Conectando a stream: {config.video_source}")
+        else:
+            print(f"[INFO] Abriendo cámara física: {config.video_source}")
+        
         self._cap = cv2.VideoCapture(config.video_source)
         self._is_capturing = False
-
+        
+        if not self._cap.isOpened():
+            raise RuntimeError(f"No se pudo abrir la fuente de video: {config.video_source}")
+    
     def set(self, propId: int, value: float) -> bool:
         return self._cap.set(propId, value)
-
+    
     def start(self, listener=None):
         self._is_capturing = True
         while self._is_capturing:
@@ -399,16 +418,31 @@ class FaceDetector:
                 print("[INFO] Monitor de carpeta detenido")
             except Exception as e:
                 print(f"[ERROR] Error al detener el monitor: {e}")
-        
         # Detener la captura de video
         self._cap.stop()
 
 
-cap = VideoCapture(VideoConfig())
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-cap.set(cv2.CAP_PROP_FPS, 30)
-cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+# Obtener fuente de video desde variable de entorno
+# Puede ser un stream HTTP o un índice de cámara local
+VIDEO_SOURCE = os.getenv('VIDEO_SOURCE', '0')
+
+# Si es un número, convertir a int (cámara local)
+# Si es una URL, dejarlo como string (stream HTTP)
+try:
+    video_source = int(VIDEO_SOURCE)
+except ValueError:
+    video_source = VIDEO_SOURCE
+
+print(f"[CONFIG] Fuente de video: {video_source}")
+
+cap = VideoCapture(VideoConfig(video_source=video_source))
+
+# Solo configurar propiedades si es cámara física (int)
+if isinstance(video_source, int):
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    cap.set(cv2.CAP_PROP_FPS, 30)
+    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
 asistencia = Asistencia()
 
