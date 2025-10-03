@@ -164,8 +164,11 @@ cat face-services\asistencias\asistencia_*.txt
 - Verifica que no esté en uso por otra app
 
 ### "Network Error" al detectar rostros
+- **Causa común**: Face-services no está corriendo correctamente
 - Verifica que face-services esté corriendo: `docker-compose ps`
 - Ve los logs: `docker-compose logs face-services`
+- Si ves errores de librerías (`libGL.so.1`), reconstruye: `docker-compose build face-services`
+- Reinicia: `docker-compose up -d`
 
 ### Las detecciones no funcionan
 - Asegúrate de haber registrado personas con fotos

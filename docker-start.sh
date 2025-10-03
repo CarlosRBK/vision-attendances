@@ -15,6 +15,23 @@ fi
 
 echo "✅ Docker detectado"
 
+# Detectar Docker Compose (v2 'docker compose' o v1 'docker-compose')
+if docker compose version >/dev/null 2>&1; then
+    COMPOSE_CMD="docker compose"
+elif command -v docker-compose >/dev/null 2>&1; then
+    COMPOSE_CMD="docker-compose"
+else
+    echo "❌ No se encontró Docker Compose."
+    echo "   Instala Docker Desktop actualizado o docker-compose v1."
+    exit 1
+fi
+
+# Forzar plataforma amd64 en macOS Apple Silicon para evitar fallos con dlib
+if [ "$(uname -s)" = "Darwin" ] && [ "$(uname -m)" = "arm64" ]; then
+    export DOCKER_DEFAULT_PLATFORM=linux/amd64
+    echo "ℹ️  macOS ARM detectado: usando DOCKER_DEFAULT_PLATFORM=linux/amd64"
+fi
+
 # Verificar si existe el archivo .env del backend
 if [ ! -f "backend/.env" ]; then
     echo "⚠️  No se encontró backend/.env"
@@ -40,7 +57,7 @@ fi
 
 echo ""
 echo "🏗️  Construyendo imágenes Docker..."
-docker-compose build
+$COMPOSE_CMD build
 
 if [ $? -ne 0 ]; then
     echo "❌ Error al construir las imágenes"
@@ -51,7 +68,7 @@ echo ""
 echo "✅ Imágenes construidas exitosamente"
 echo ""
 echo "🚀 Iniciando servicios..."
-docker-compose up -d
+$COMPOSE_CMD up -d
 
 if [ $? -ne 0 ]; then
     echo "❌ Error al iniciar los servicios"
@@ -67,8 +84,8 @@ echo "   Backend:   http://localhost:8000"
 echo "   API Docs:  http://localhost:8000/docs"
 echo ""
 echo "📊 Para ver los logs:"
-echo "   docker-compose logs -f"
+echo "   $COMPOSE_CMD logs -f"
 echo ""
 echo "🛑 Para detener los servicios:"
-echo "   docker-compose down"
+echo "   $COMPOSE_CMD down"
 echo ""
