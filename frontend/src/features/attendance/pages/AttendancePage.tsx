@@ -31,10 +31,10 @@ export default function AttendancePage() {
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
           📊 Registro de Asistencias
         </h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-gray-600">
           Visualiza y gestiona las asistencias registradas por reconocimiento facial
         </p>
       </div>

@@ -136,6 +136,18 @@ class FolderMonitor(FileSystemEventHandler):
 
 # ==================== FUNCIONES DE DETECCIÓN ====================
 
+def extract_clean_name(filename: str) -> str:
+    """
+    Extrae el nombre limpio del archivo, removiendo el sufijo UUID.
+    Ejemplo: 'juan_perez_d3ab5f0d.jpg' -> 'juan_perez'
+    """
+    name = os.path.splitext(filename)[0]  # Remover extensión
+    # Remover el sufijo UUID (8 caracteres hex precedidos por _)
+    # Patrón: _[a-f0-9]{8}$
+    import re
+    clean_name = re.sub(r'_[a-f0-9]{8}$', '', name)
+    return clean_name
+
 def load_known_faces():
     """Carga todos los rostros conocidos desde la carpeta"""
     global faces_encodings, faces_names
@@ -158,8 +170,8 @@ def load_known_faces():
         for filename in image_files:
             filepath = os.path.join(FACES_FOLDER, filename)
             try:
-                # Extraer nombre del archivo
-                name = os.path.splitext(filename)[0]
+                # Extraer nombre limpio del archivo (sin sufijo UUID)
+                name = extract_clean_name(filename)
                 
                 # Cargar imagen
                 image = cv2.imread(filepath)

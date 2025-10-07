@@ -20,6 +20,11 @@ export default function AttendanceList({ filters, showRefresh = true }: Attendan
 
   const rows = Array.isArray(attendances) ? attendances : []
 
+  const cleanPersonName = (name: string): string => {
+    // Remover sufijo UUID si existe (ej: "test_d3ab5f0d" -> "test")
+    return name.replace(/_[a-f0-9]{8}$/i, '').replace(/_/g, ' ')
+  }
+
   const formatTimestamp = (timestamp: string) => {
     try {
       const TIMEZONE = 'America/Argentina/Buenos_Aires'
@@ -112,6 +117,7 @@ export default function AttendanceList({ filters, showRefresh = true }: Attendan
           <tbody className="divide-y divide-gray-200">
             {rows.map((attendance) => {
               const timeInfo = formatTimestamp(attendance.timestamp)
+              const cleanName = cleanPersonName(attendance.person_name)
               return (
                 <tr
                   key={attendance.id}
@@ -120,11 +126,11 @@ export default function AttendanceList({ filters, showRefresh = true }: Attendan
                   <td className="py-3 pr-4">
                     <div className="flex items-center gap-3">
                       <div className="size-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 grid place-items-center text-white font-medium">
-                        {attendance.person_name.charAt(0).toUpperCase()}
+                        {cleanName.charAt(0).toUpperCase()}
                       </div>
                       <div>
                         <div className="font-medium text-gray-900">
-                          {attendance.person_name}
+                          {cleanName}
                         </div>
                         <div className="text-xs text-gray-500">
                           ID: {attendance.person_id}
