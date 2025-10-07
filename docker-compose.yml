@@ -22,9 +22,9 @@ services:
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+      timeout: 20s  # Aumentado de 10s a 20s
+      retries: 5    # Aumentado de 3 a 5
+      start_period: 60s  # Aumentado de 40s a 60s
 
   face-services:
     build:
@@ -35,11 +35,15 @@ services:
       - "5001:5001"
     environment:
       - PYTHONUNBUFFERED=1
+      - BACKEND_URL=http://backend:8000
+      - DEVICE_ID=face-service-camera-1
+    depends_on:
+      - backend
     volumes:
       # Mount for hot reload during development
       - ./face-services:/app
-      # Compartir carpeta de fotos con backend
-      - backend_media:/app/static/people_photos
+      # Acceso directo a las fotos del backend (sin volumen nombrado)
+      - ./backend/app/static/people_photos:/static/people_photos
       # Persistir archivos de asistencias
       - face_services_data:/app/asistencias
     networks:

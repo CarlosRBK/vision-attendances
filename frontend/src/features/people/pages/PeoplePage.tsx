@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { MainLayout } from '@/shared/layouts/MainLayout'
 import { Button } from '@/shared/ui/Button'
 import PeopleGrid from '../components/PeopleGrid'
 import PeopleFormModern from '../components/PeopleFormModern'
@@ -26,8 +25,7 @@ export default function PeoplePage() {
   }
   
   return (
-    <MainLayout title="Gestión de Alumnos">
-      <div className="space-y-8">
+      <div className="space-y-8 mx-auto p-4">
         <AnimatePresence mode="wait">
           {showForm ? (
             <motion.div
@@ -82,7 +80,6 @@ export default function PeoplePage() {
           )}
         </AnimatePresence>
       </div>
-    </MainLayout>
   )
 }
 

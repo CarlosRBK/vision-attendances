@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import PeoplePage from '@/features/people/pages/PeoplePage'
 import FaceDetectionPage from '@/features/face-detection/pages/FaceDetectionPage'
+import AttendancePage from '@/features/attendance/pages/AttendancePage'
 
-type Page = 'people' | 'detection'
+type Page = 'people' | 'detection' | 'attendance'
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('people')
@@ -45,6 +46,18 @@ function App() {
               >
                 📹 Detección Facial
               </button>
+              <button
+                onClick={() => setCurrentPage('attendance')}
+                className={`
+                  px-4 py-2 rounded-md font-medium text-sm transition-all
+                  ${currentPage === 'attendance' 
+                    ? 'bg-white text-gray-900 shadow-sm' 
+                    : 'text-gray-600 hover:text-gray-900'
+                  }
+                `}
+              >
+                📊 Asistencias
+              </button>
             </div>
           </div>
         </div>
@@ -54,6 +67,7 @@ function App() {
       <main>
         {currentPage === 'people' && <PeoplePage />}
         {currentPage === 'detection' && <FaceDetectionPage />}
+        {currentPage === 'attendance' && <AttendancePage />}
       </main>
     </div>
   )

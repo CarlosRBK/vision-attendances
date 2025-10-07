@@ -35,36 +35,6 @@ export function MainLayout({ children, title = 'Vision Attendances', breadcrumbs
           aria-hidden="true"
         />
       )}
-
-      {/* Sidebar */}
-      <AnimatePresence mode="wait">
-        {isSidebarOpen && (
-          <motion.aside
-            initial={{ width: 0, opacity: 0, x: -280 }}
-            animate={{ width: 280, opacity: 1, x: 0 }}
-            exit={{ width: 0, opacity: 0, x: -280 }}
-            transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="bg-white border-r border-gray-200 h-screen fixed md:sticky top-0 overflow-hidden z-30 shadow-lg"
-          >
-            <div className="p-6">
-              <div className="flex items-center gap-3 mb-8">
-                <div className="size-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 grid place-items-center text-white font-semibold">
-                  V
-                </div>
-                <h1 className="text-xl font-semibold tracking-tight">Vision Attendances</h1>
-              </div>
-
-              <nav className="space-y-1">
-                {/* <NavItem active icon={<HomeIcon />} label="Dashboard" /> */}
-                <NavItem active icon={<PeopleIcon />} label="Alumnos" />
-                <NavItem icon={<CalendarIcon />} label="Asistencias (Proximamente)" />
-                {/* <NavItem icon={<SettingsIcon />} label="Configuración" /> */}
-              </nav>
-            </div>
-          </motion.aside>
-        )}
-      </AnimatePresence>
-
       {/* Main content */}
       <div className="flex-1">
         {/* Header */}

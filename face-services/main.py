@@ -14,11 +14,17 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 import threading
 import time
+import requests
+from typing import Optional
 
 app = Flask(__name__)
 CORS(app)  # Permitir requests desde el frontend
 
 # ==================== CONFIGURACIÓN GLOBAL ====================
+
+# Configuración del backend
+BACKEND_URL = os.getenv("BACKEND_URL", "http://backend:8000")
+DEVICE_ID = os.getenv("DEVICE_ID", "face-service-default")
 
 # Obtener la ruta base para las fotos
 current_file_path = os.path.abspath(__file__)
@@ -34,36 +40,52 @@ faces_lock = threading.Lock()
 # ==================== CLASE ASISTENCIA ====================
 
 class Asistencia:
-    """Maneja el registro de asistencias en archivo"""
+    """Maneja el registro de asistencias enviándolas al backend"""
     
     def __init__(self):
-        self.registrados = set()
-        fecha_actual = datetime.now().strftime("%d-%m-%Y")
-        self.archivo_asistencia = f"asistencias/asistencia_{fecha_actual}.txt"
-        
-        # Crear carpeta si no existe
-        os.makedirs("asistencias", exist_ok=True)
-        
-        # Cargar asistencias anteriores del día
-        if os.path.exists(self.archivo_asistencia):
-            with open(self.archivo_asistencia, "r", encoding="utf-8") as f:
-                for linea in f:
-                    nombre = linea.strip().split(" - ")[-1]
-                    self.registrados.add(nombre)
-        
-        print(f"[INFO] Asistencia iniciada: {self.archivo_asistencia}")
-        print(f"[INFO] Ya registrados hoy: {len(self.registrados)}")
+        self.registrados_hoy = set()  # Cache local para evitar duplicados en la misma sesión
+        self.lock = threading.Lock()
+        print(f"[INFO] Sistema de asistencia iniciado")
+        print(f"[INFO] Backend URL: {BACKEND_URL}")
+        print(f"[INFO] Device ID: {DEVICE_ID}")
     
-    def marcar_asistencia(self, nombre: str) -> bool:
-        """Marca asistencia si no está registrada hoy. Retorna True si se marcó."""
-        if nombre not in self.registrados:
-            fecha_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            with open(self.archivo_asistencia, "a", encoding="utf-8") as f:
-                f.write(f"{fecha_hora} - {nombre}\n")
-            self.registrados.add(nombre)
-            print(f"[ASISTENCIA] ✓ {nombre} - {fecha_hora}")
-            return True
-        return False
+    def marcar_asistencia(self, person_id: str, person_name: str, confidence: float) -> bool:
+        """Marca asistencia enviando los datos al backend. Retorna True si se marcó."""
+        with self.lock:
+            # Verificar si ya se registró en esta sesión
+            if person_id in self.registrados_hoy:
+                return False
+            
+            try:
+                # Enviar datos al backend
+                payload = {
+                    "person_id": person_id,
+                    "person_name": person_name,
+                    "confidence": float(confidence),
+                    "device_id": DEVICE_ID
+                }
+                
+                response = requests.post(
+                    f"{BACKEND_URL}/attendances/",
+                    json=payload,
+                    timeout=5.0
+                )
+                
+                if response.status_code in [200, 201]:
+                    self.registrados_hoy.add(person_id)
+                    fecha_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    print(f"[ASISTENCIA] ✓ {person_name} (ID: {person_id}) - {fecha_hora} - Confianza: {confidence:.2%}")
+                    return True
+                else:
+                    print(f"[ERROR] Backend respondió con código {response.status_code}: {response.text}")
+                    return False
+                    
+            except requests.exceptions.RequestException as e:
+                print(f"[ERROR] No se pudo conectar al backend: {e}")
+                return False
+            except Exception as e:
+                print(f"[ERROR] Error al marcar asistencia: {e}")
+                return False
 
 # ==================== MONITOR DE CARPETA ====================
 
@@ -176,6 +198,9 @@ def detect_faces_in_frame(frame):
         face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
         faces = face_cascade.detectMultiScale(gray, 1.3, 5)
         
+        if len(faces) > 0:
+            print(f"[DEBUG] {len(faces)} rostro(s) detectado(s) en el frame")
+        
         detections = []
         
         for (x, y, w, h) in faces:
@@ -211,13 +236,28 @@ def detect_faces_in_frame(frame):
                         best_match_index = np.argmin(distances)
                         best_distance = distances[best_match_index]
                         
-                        # Umbral de 0.6 (más bajo = más estricto)
-                        if best_distance < 0.6:
+                        print(f"[DEBUG] Mejor coincidencia: {faces_names[best_match_index]} con distancia {best_distance:.4f}")
+                        
+                        # Umbral de 0.5 (más bajo = más estricto, 0.5 es más exigente que 0.6)
+                        if best_distance < 0.5:
                             name = faces_names[best_match_index]
                             confidence = 1 - best_distance
                             
-                            # Marcar asistencia
-                            asistencia.marcar_asistencia(name)
+                            print(f"[DEBUG] Rostro reconocido: {name} con confianza {confidence:.2%}")
+                            
+                            # Marcar asistencia (enviar al backend)
+                            # Usar el nombre como person_id por ahora
+                            # TODO: Obtener el person_id real desde el backend
+                            resultado = asistencia.marcar_asistencia(
+                                person_id=name,
+                                person_name=name,
+                                confidence=confidence
+                            )
+                            
+                            if resultado:
+                                print(f"[DEBUG] Asistencia marcada exitosamente para {name}")
+                            else:
+                                print(f"[DEBUG] No se marcó asistencia para {name} (posiblemente ya registrado hoy)")
             
             detections.append({
                 "name": name,
@@ -314,14 +354,27 @@ def reload_faces():
 
 @app.route('/attendance/today', methods=['GET'])
 def get_attendance_today():
-    """Obtiene la lista de asistencia del día actual"""
+    """Obtiene la lista de asistencia del día actual desde el backend"""
     try:
-        attendance_list = list(asistencia.registrados)
+        # Redirigir al backend para obtener las asistencias del día
+        response = requests.get(
+            f"{BACKEND_URL}/attendances/today/",
+            timeout=5.0
+        )
+        
+        if response.status_code == 200:
+            return jsonify(response.json()), 200
+        else:
+            return jsonify({
+                "error": "Error al obtener asistencias del backend",
+                "status_code": response.status_code
+            }), response.status_code
+            
+    except requests.exceptions.RequestException as e:
         return jsonify({
-            "date": datetime.now().strftime("%d-%m-%Y"),
-            "count": len(attendance_list),
-            "registered": sorted(attendance_list)
-        }), 200
+            "error": "No se pudo conectar al backend",
+            "details": str(e)
+        }), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

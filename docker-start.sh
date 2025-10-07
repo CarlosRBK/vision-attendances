@@ -26,10 +26,10 @@ else
     exit 1
 fi
 
-# Forzar plataforma amd64 en macOS Apple Silicon para evitar fallos con dlib
+# Configurar plataforma para macOS Apple Silicon
 if [ "$(uname -s)" = "Darwin" ] && [ "$(uname -m)" = "arm64" ]; then
-    export DOCKER_DEFAULT_PLATFORM=linux/amd64
-    echo "ℹ️  macOS ARM detectado: usando DOCKER_DEFAULT_PLATFORM=linux/amd64"
+    export DOCKER_DEFAULT_PLATFORM=linux/arm64
+    echo "ℹ️  macOS ARM detectado: usando DOCKER_DEFAULT_PLATFORM=linux/arm64"
 fi
 
 # Verificar si existe el archivo .env del backend

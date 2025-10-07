@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from .modules.people.router import router as people_router
+from .modules.attendance.router import router as attendance_router
 
 APP_VERSION = os.getenv("APP_VERSION", "0.1.0")
 
@@ -24,6 +25,7 @@ def create_app() -> FastAPI:
         openapi_tags=[
             {"name": "health", "description": "Estado del servicio"},
             {"name": "people", "description": "Gestión de personas (alumnos/docentes)"},
+            {"name": "attendance", "description": "Registro y consulta de asistencias"},
         ],
     )
 
@@ -51,6 +53,7 @@ def create_app() -> FastAPI:
         # Crear índices mínimos
         await app.state.db["attendances"].create_index("timestamp")
         await app.state.db["attendances"].create_index("person_id")
+        await app.state.db["attendances"].create_index("device_id")
         await app.state.db["people"].create_index("full_name")
 
     async def on_shutdown() -> None:
@@ -62,6 +65,7 @@ def create_app() -> FastAPI:
 
     # Routers de módulos
     app.include_router(people_router, prefix="/people", tags=["people"])
+    app.include_router(attendance_router, tags=["attendance"])
 
     # Static files (media)
     from .core.config import settings as _settings
