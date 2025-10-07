@@ -4,6 +4,8 @@ import type { AttendanceFilters } from '../types'
 import { Badge } from '@/shared/ui/Badge'
 import { LoadingSpinner } from '@/shared/ui/LoadingSpinner'
 import { EmptyState } from '@/shared/ui/EmptyState'
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz'
+import { differenceInMinutes, differenceInHours, differenceInDays } from 'date-fns'
 
 type AttendanceListProps = {
   filters?: AttendanceFilters
@@ -20,12 +22,18 @@ export default function AttendanceList({ filters, showRefresh = true }: Attendan
 
   const formatTimestamp = (timestamp: string) => {
     try {
-      const date = new Date(timestamp)
+      const TIMEZONE = 'America/Argentina/Buenos_Aires'
+      
+      // Parse the UTC timestamp and convert to Buenos Aires timezone
+      const utcDate = new Date(timestamp + 'Z') // Add 'Z' to ensure it's treated as UTC
+      const buenosAiresDate = toZonedTime(utcDate, TIMEZONE)
       const now = new Date()
-      const diffMs = now.getTime() - date.getTime()
-      const diffMins = Math.floor(diffMs / 60000)
-      const diffHours = Math.floor(diffMs / 3600000)
-      const diffDays = Math.floor(diffMs / 86400000)
+      const buenosAiresNow = toZonedTime(now, TIMEZONE)
+      
+      // Calculate differences
+      const diffMins = differenceInMinutes(buenosAiresNow, buenosAiresDate)
+      const diffHours = differenceInHours(buenosAiresNow, buenosAiresDate)
+      const diffDays = differenceInDays(buenosAiresNow, buenosAiresDate)
 
       let relative = ''
       if (diffMins < 1) relative = 'Hace un momento'
@@ -34,15 +42,16 @@ export default function AttendanceList({ filters, showRefresh = true }: Attendan
       else if (diffDays === 1) relative = 'Ayer'
       else relative = `Hace ${diffDays} días`
 
+      // Format date in Buenos Aires timezone with dd/MM/yyyy format
+      const absolute = formatInTimeZone(
+        utcDate,
+        TIMEZONE,
+        'dd/MM/yyyy, HH:mm'
+      )
+
       return {
         relative,
-        absolute: date.toLocaleString('es-ES', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        })
+        absolute
       }
     } catch {
       return { relative: 'Fecha inválida', absolute: timestamp }
@@ -74,14 +83,14 @@ export default function AttendanceList({ filters, showRefresh = true }: Attendan
   }
 
   return (
-    <div className="rounded-2xl border border-gray-200 dark:border-gray-700 p-4">
+    <div className="rounded-2xl border border-gray-200 p-4 bg-white">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-medium text-gray-900 dark:text-gray-100">
+        <h3 className="font-medium text-gray-900">
           Asistencias ({rows.length})
         </h3>
         {showRefresh && (
           <button
-            className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+            className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
             onClick={() => refetch()}
             disabled={isLoading}
           >
@@ -90,9 +99,9 @@ export default function AttendanceList({ filters, showRefresh = true }: Attendan
         )}
       </div>
 
-      <div className="overflow-x-auto text-black">
+      <div className="overflow-x-auto text-black bg-white">
         <table className="w-full text-sm">
-          <thead className="text-left text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+          <thead className="text-left text-gray-500 border-b border-gray-200">
             <tr>
               <th className="py-3 pr-4 font-medium">Persona</th>
               <th className="py-3 px-4 font-medium">Confianza</th>
@@ -100,13 +109,13 @@ export default function AttendanceList({ filters, showRefresh = true }: Attendan
               <th className="py-3 px-4 font-medium">Dispositivo</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+          <tbody className="divide-y divide-gray-200">
             {rows.map((attendance) => {
               const timeInfo = formatTimestamp(attendance.timestamp)
               return (
                 <tr
                   key={attendance.id}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                  className="hover:bg-gray-50 transition-colors"
                 >
                   <td className="py-3 pr-4">
                     <div className="flex items-center gap-3">
@@ -114,10 +123,10 @@ export default function AttendanceList({ filters, showRefresh = true }: Attendan
                         {attendance.person_name.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <div className="font-medium text-gray-900 dark:text-gray-100">
+                        <div className="font-medium text-gray-900">
                           {attendance.person_name}
                         </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                        <div className="text-xs text-gray-500">
                           ID: {attendance.person_id}
                         </div>
                       </div>
@@ -127,10 +136,10 @@ export default function AttendanceList({ filters, showRefresh = true }: Attendan
                     {getConfidenceBadge(attendance.confidence)}
                   </td>
                   <td className="py-3 px-4">
-                    <div className="text-gray-900 dark:text-gray-100">
+                    <div className="text-gray-900">
                       {timeInfo.absolute}
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                    <div className="text-xs text-gray-500">
                       {timeInfo.relative}
                     </div>
                   </td>

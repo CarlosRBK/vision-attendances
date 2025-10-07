@@ -23,7 +23,7 @@ export function UiProviders({ children }: PropsWithChildren) {
     <QueryClientProvider client={queryClient}>
       {children}
       <ToastProvider 
-        position="top-right"
+        position="top-center"
         closeButton
         visibleToasts={3}
       />

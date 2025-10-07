@@ -1,16 +1,26 @@
+import { useRef } from 'react'
 import { FaceDetectionCamera } from '../'
 import type { FaceDetection } from '../types'
 import { toast } from 'sonner'
 
 export default function FaceDetectionPage() {
+  // Set para rastrear personas ya detectadas (se limpia al desmontar el componente)
+  const detectedPeopleRef = useRef<Set<string>>(new Set())
+
   const handleDetection = (detection: FaceDetection) => {
     // Callback cuando se detecta un rostro conocido
     console.log('Rostro detectado:', detection)
     
-    // Opcional: mostrar notificación
-    toast.success(`¡${detection.name} detectado!`, {
-      description: `Confianza: ${Math.round(detection.confidence * 100)}%`
-    })
+    // Verificar si ya se mostró el toast para esta persona
+    if (!detectedPeopleRef.current.has(detection.name)) {
+      // Agregar al set de personas detectadas
+      detectedPeopleRef.current.add(detection.name)
+      
+      // Mostrar notificación solo la primera vez
+      toast.success(`¡${detection.name} detectado!`, {
+        description: `Confianza: ${Math.round(detection.confidence * 100)}%`
+      })
+    }
   }
 
   return (
